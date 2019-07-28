@@ -1,0 +1,15 @@
+CMakeCache.txt
+CMakeFiles
+*.swp
+*.osmx
+*.osmx-lock
+Makefile
+*.pbf
+*.cmake
+osmx
+venv
+depends
+a.out
+*.osc
+*.osc.gz
+__pycache__

@@ -1,0 +1,15 @@
+[submodule "vendor/CRoaring"]
+	path = vendor/CRoaring
+	url = https://github.com/RoaringBitmap/CRoaring.git
+[submodule "vendor/s2geometry"]
+	path = vendor/s2geometry
+	url = https://github.com/google/s2geometry.git
+[submodule "vendor/libosmium"]
+	path = vendor/libosmium
+	url = https://github.com/osmcode/libosmium.git
+[submodule "vendor/protozero"]
+	path = vendor/protozero
+	url = https://github.com/mapbox/protozero
+[submodule "vendor/cxxopts"]
+	path = vendor/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
