@@ -7,6 +7,7 @@ Makefile
 *.pbf
 *.cmake
 osmx
+osmxTest
 venv
 depends
 a.out
