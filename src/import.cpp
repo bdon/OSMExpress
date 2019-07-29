@@ -253,6 +253,7 @@ void cmdImport(int argc, char* argv[]) {
   for (auto option : header) {
     cout << option.first << " " << option.second << endl;
   }
+  cout << "Box: " << header.box() << endl;
   cout << "Timestamp: " << header.get("osmosis_replication_timestamp") << endl;
   cout << "Sequence#: " << header.get("osmosis_replication_sequence_number") << endl;
   metadata.put("osmosis_replication_timestamp",header.get("osmosis_replication_timestamp"));

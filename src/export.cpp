@@ -23,10 +23,6 @@
 #include "storage.h"
 #include <cxxopts.hpp>
 
-// small:  {\"bbox\":[40.7411\,-73.9937\,40.7486\,-73.9821]}
-// big:    {\"bbox\":[40.6762\,-74.0543\,40.8093\,-73.8603]}
-// radius: {"center":[40.7411,-73.9937],"radius":25.5}
-// indo:  {\"bbox\":[-12.039321\,94.394531\,8.407168\,142.418292]}
 
 using namespace std;
 using namespace osmx;
@@ -113,6 +109,8 @@ void traverseReverse(MDB_cursor *cursor,uint64_t from, Roaring64Map &set) {
   }
 }
 
+// must be --bbox, --disc, --poly or --json
+// or --region
 void cmdExport(int argc, char * argv[]) {
   cxxopts::Options cmd_options("Import", "Convert a a .pbf into an .osmx.");
   cmd_options.add_options()

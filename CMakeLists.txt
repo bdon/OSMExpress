@@ -21,9 +21,10 @@ add_executable(osmx src/main.cpp src/storage.cpp src/import.cpp src/export.cpp s
 target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
 
-add_executable(osmxTest test/test_shape.cpp)
+add_executable(osmxTest test/test_shape.cpp src/shape.cpp)
 set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
 include_directories(include)
 include_directories(vendor/catch2/single_include)
+target_link_libraries(osmxTest s2)
 enable_testing()
 add_test(osmxTest osmxTest)
