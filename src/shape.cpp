@@ -1,0 +1,1 @@
+// different kinds of inputs
