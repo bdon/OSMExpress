@@ -105,3 +105,11 @@ bool Shape::Contains(S2Point p) {
     }
     return false;
 }
+
+S2CellUnion Shape::GetCovering(S2RegionCoverer &coverer) {
+    S2CellUnion retval;
+    for (auto const &region : mRegions) {
+        retval = retval.Union(coverer.GetCovering(*region));
+    }
+    return retval;
+}

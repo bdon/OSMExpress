@@ -17,7 +17,7 @@ link_directories(vendor/s2geometry)
 link_directories(/usr/local/lib)
 link_directories(vendor/CRoaring)
 
-add_executable(osmx src/main.cpp src/storage.cpp src/import.cpp src/export.cpp src/update.cpp)
+add_executable(osmx src/main.cpp src/storage.cpp src/import.cpp src/export.cpp src/update.cpp src/shape.cpp)
 target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
 

@@ -22,6 +22,7 @@
 #include "nlohmann/json.hpp"
 #include "storage.h"
 #include <cxxopts.hpp>
+#include "shape.h"
 
 
 using namespace std;
@@ -109,51 +110,61 @@ void traverseReverse(MDB_cursor *cursor,uint64_t from, Roaring64Map &set) {
   }
 }
 
+static bool endsWith(const std::string& str, const std::string& suffix)
+{
+    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+}
+
 // must be --bbox, --disc, --poly or --json
 // or --region
 void cmdExport(int argc, char * argv[]) {
   cxxopts::Options cmd_options("Import", "Convert a a .pbf into an .osmx.");
   cmd_options.add_options()
     ("v,verbose", "Verbose output")
-    ("json", "JSON progress output")
+    ("jsonOutput", "JSON progress output")
     ("cmd", "Command to run", cxxopts::value<string>())
     ("osmx", "Input .osmx", cxxopts::value<string>())
     ("output", "Output file, pbf or xml", cxxopts::value<string>())
-    ("boundary", "Boundary JSON", cxxopts::value<string>())
+    ("bbox", "rectangle in minLat,minLon,maxLat,maxLon", cxxopts::value<string>())
+    ("disc", "disc in centerLat,centerLon,radiusDegrees", cxxopts::value<string>())
+    ("json","geoJson of region", cxxopts::value<string>())
+    ("poly","osmosis .poly of region", cxxopts::value<string>())
+    ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
   ;
-  cmd_options.parse_positional({"cmd","osmx","output","boundary"});
+  cmd_options.parse_positional({"cmd","osmx","output"});
   auto result = cmd_options.parse(argc, argv);
 
   auto startTime = std::chrono::high_resolution_clock::now();
   ExportProgress prog;
   string err;
 
-  bool jsonOutput = result.count("json") > 0;
+  bool jsonOutput = result.count("jsonOutput") > 0;
   if (jsonOutput) prog.print();
 
-  auto json = nlohmann::json::parse(result["boundary"].as<string>());
-  if (!json.is_object()) {
-    if (!jsonOutput) cout << "JSON must be Object." << endl;
-    exit(1);
-  }
-
-  unique_ptr<S2Region> region;
-  if (json.count("bbox") > 0) {
-    auto coords = json["bbox"];
-    auto lo = S2LatLng::FromDegrees(coords[0].get<double>(),coords[1].get<double>());
-    auto hi = S2LatLng::FromDegrees(coords[2].get<double>(),coords[3].get<double>());
-    region = make_unique<S2LatLngRect>(lo,hi);
-  } else if (json.count("radius") > 0) {
-
-  } else if (json.count("coordinates") > 0) {
-    // bbox: {"type":"Polygon","coordinates":[]}
+  std::unique_ptr<Shape> shape;
+  if (result.count("bbox")) shape = std::make_unique<Shape>(result["bbox"].as<string>(),"bbox");
+  else if (result.count("disc")) shape = std::make_unique<Shape>(result["disc"].as<string>(),"disc");
+  else if (result.count("json")) shape = std::make_unique<Shape>(result["json"].as<string>(),"json");
+  else if (result.count("poly")) shape = std::make_unique<Shape>(result["poly"].as<string>(),"poly");
+  else if (result.count("region")) {
+    auto fname = result["region"].as<string>();
+    std::ifstream t(fname);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    if (endsWith(fname,"bbox")) shape = std::make_unique<Shape>(buffer.str(),"bbox");
+    if (endsWith(fname,"disc")) shape = std::make_unique<Shape>(buffer.str(),"disc");
+    if (endsWith(fname,"json")) shape = std::make_unique<Shape>(buffer.str(),"json");
+    if (endsWith(fname,"poly")) shape = std::make_unique<Shape>(buffer.str(),"poly");
+  } else {
+    cout << "No region specified." << endl;
+    exit(0);
   }
 
   S2RegionCoverer::Options options;
   options.set_max_cells(1024);
   options.set_max_level(CELL_INDEX_LEVEL);
   S2RegionCoverer coverer(options);
-  S2CellUnion covering = coverer.GetCovering(*region);
+  S2CellUnion covering = shape->GetCovering(coverer);
   if (!jsonOutput) {
     cout << "Query cells: " << covering.cell_ids().size() << endl;
   }
