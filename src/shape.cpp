@@ -5,13 +5,41 @@
 #include "s2/s2cap.h"
 #include "s2/s2polygon.h"
 #include "s2/s2loop.h"
-#include "nlohmann/json.hpp"
 #include "shape.h"
 
 static inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
         return !std::isspace(ch);
     }).base(), s.end());
+}
+
+
+std::unique_ptr<S2Polygon> S2PolyFromCoordinates(nlohmann::json &coordinates) {
+    std::vector<std::unique_ptr<S2Loop>> loopRegions;
+    for (auto loop : coordinates) {
+        std::vector<S2Point> points;
+        for (auto coord : loop) {
+            double lon = coord[0].get<double>();
+            double lat = coord[1].get<double>();
+            points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
+        }
+        auto loopRegion = std::make_unique<S2Loop>(points);
+        loopRegion->Normalize();
+        loopRegions.push_back(std::move(loopRegion));
+    };
+    return std::make_unique<S2Polygon>(std::move(loopRegions));
+}
+
+void Shape::AddS2RegionFromGeometry(nlohmann::json &geometry) {
+    if (geometry["type"] == "Polygon") {
+        auto p = S2PolyFromCoordinates(geometry["coordinates"]);
+        mRegions.push_back(move(p));
+    } else if (geometry["type"] == "MultiPolygon") {
+        for (auto polygon : geometry["coordinates"]) {
+            auto p = S2PolyFromCoordinates(polygon);
+            mRegions.push_back(move(p));
+        }
+    }
 }
 
 Shape::Shape(const std::string &text, const std::string &ext) {
@@ -54,20 +82,20 @@ Shape::Shape(const std::string &text, const std::string &ext) {
         loop->Normalize();
         mRegions.push_back(std::move(loop));
     } else if (ext == "json") {
-        std::vector<S2Point> points;
-
         auto json = nlohmann::json::parse(text);
-        assert (json.is_object());
-        for (auto loop : json["coordinates"]) {
-            for (auto coord : loop) {
-                double lon = coord[0].get<double>();
-                double lat = coord[1].get<double>();
-                points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
+        if (json["type"] == "Polygon" || json["type"] == "MultiPolygon") {
+            AddS2RegionFromGeometry(json);
+        } else if (json["type"] == "GeometryCollection") {
+            for (auto geometry : json) {
+                AddS2RegionFromGeometry(json);
+            }
+        } else if (json["type"] == "Feature") {
+            AddS2RegionFromGeometry(json["geometry"]);
+        } else if (json["type"] == "FeatureCollection") {
+            for (auto feature : json) {
+                AddS2RegionFromGeometry(json["feature"]);
             }
         }
-        auto loop = std::make_unique<S2Loop>(points);
-        loop->Normalize();
-        mRegions.push_back(std::move(loop));
     }
 }
 

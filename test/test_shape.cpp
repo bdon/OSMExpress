@@ -50,14 +50,54 @@ TEST_CASE("geojson polygon") {
         REQUIRE(!s.Contains(S2LatLng::FromDegrees(2.0,2.0).ToPoint()));
     }
 
-    SECTION("multipolygon geometry") {
-
+    SECTION("polygon with a hole") {
+        string json = R"json({
+  "type": "Polygon",
+  "coordinates": [
+    [
+      [-2.0,-2.0],
+      [-2.0,2.0],
+      [2.0,2.0],
+      [2.0,-2.0],
+      [-2.0,-2.0]
+    ],
+    [
+      [-1.0,-1.0],
+      [-1.0,1.0],
+      [1.0,1.0],
+      [1.0,-1.0],
+      [-1.0,-1.0]
+    ]
+  ]
+})json";
+        Shape s{json,"json"};
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(1.5,1.5).ToPoint()));
+        REQUIRE(!s.Contains(S2LatLng::FromDegrees(0.0,0.0).ToPoint()));
     }
 
-    SECTION("featurecollection") {
-        // a featurecollection with 1 polygon feature
-        // a featurecollection with 1 polygon and 1 multipolygon feature
-
+    SECTION("multipolygon geometry") {
+        string json = R"json({
+  "type": "MultiPolygon",
+  "coordinates": [
+    [[
+      [0.0,0.0],
+      [1.0,0.0],
+      [1.0,1.0],
+      [0.0,1.0],
+      [0.0,0.0]
+    ]],
+    [[
+      [2.0,2.0],
+      [3.0,2.0],
+      [3.0,3.0],
+      [2.0,3.0],
+      [2.0,2.0]
+    ]]
+  ]
+})json";
+        Shape s{json,"json"};
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(0.5,0.5).ToPoint()));
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(2.5,2.5).ToPoint()));
     }
 }
 
