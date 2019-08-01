@@ -92,8 +92,8 @@ Shape::Shape(const std::string &text, const std::string &ext) {
         } else if (json["type"] == "Feature") {
             AddS2RegionFromGeometry(json["geometry"]);
         } else if (json["type"] == "FeatureCollection") {
-            for (auto feature : json) {
-                AddS2RegionFromGeometry(json["feature"]);
+            for (auto feature : json["features"]) {
+                AddS2RegionFromGeometry(feature["geometry"]);
             }
         }
     }
