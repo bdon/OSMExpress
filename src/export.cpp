@@ -38,7 +38,7 @@ struct ExportProgress {
   uint64_t elems_prog = 0;
 
   void print() {
-    cout << "{\"timestamp\":\"" << timestamp << "\",\"cells_total\":" << cells_total << ",\"cells_prog\":" << cells_prog << ",\"nodes_total\":" << nodes_total << ",\"nodes_prog\":" << nodes_prog << ",\"elems_total\":" << elems_total << ",\"elems_prog\":" << elems_prog << "}" << endl;
+    cout << "{\"Timestamp\":\"" << timestamp << "\",\"CellsTotal\":" << cells_total << ",\"CellsProg\":" << cells_prog << ",\"NodesTotal\":" << nodes_total << ",\"NodesProg\":" << nodes_prog << ",\"ElemsTotal\":" << elems_total << ",\"ElemsProg\":" << elems_prog << "}" << endl;
   }
 };
 
@@ -127,7 +127,7 @@ void cmdExport(int argc, char * argv[]) {
     ("output", "Output file, pbf or xml", cxxopts::value<string>())
     ("bbox", "rectangle in minLat,minLon,maxLat,maxLon", cxxopts::value<string>())
     ("disc", "disc in centerLat,centerLon,radiusDegrees", cxxopts::value<string>())
-    ("json","geoJson of region", cxxopts::value<string>())
+    ("geojson","geoJson of region", cxxopts::value<string>())
     ("poly","osmosis .poly of region", cxxopts::value<string>())
     ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
   ;
@@ -144,7 +144,7 @@ void cmdExport(int argc, char * argv[]) {
   std::unique_ptr<Shape> shape;
   if (result.count("bbox")) shape = std::make_unique<Shape>(result["bbox"].as<string>(),"bbox");
   else if (result.count("disc")) shape = std::make_unique<Shape>(result["disc"].as<string>(),"disc");
-  else if (result.count("json")) shape = std::make_unique<Shape>(result["json"].as<string>(),"json");
+  else if (result.count("geojson")) shape = std::make_unique<Shape>(result["geojson"].as<string>(),"geojson");
   else if (result.count("poly")) shape = std::make_unique<Shape>(result["poly"].as<string>(),"poly");
   else if (result.count("region")) {
     auto fname = result["region"].as<string>();
@@ -153,7 +153,7 @@ void cmdExport(int argc, char * argv[]) {
     buffer << t.rdbuf();
     if (endsWith(fname,"bbox")) shape = std::make_unique<Shape>(buffer.str(),"bbox");
     if (endsWith(fname,"disc")) shape = std::make_unique<Shape>(buffer.str(),"disc");
-    if (endsWith(fname,"json")) shape = std::make_unique<Shape>(buffer.str(),"json");
+    if (endsWith(fname,"json")) shape = std::make_unique<Shape>(buffer.str(),"geojson");
     if (endsWith(fname,"poly")) shape = std::make_unique<Shape>(buffer.str(),"poly");
   } else {
     cout << "No region specified." << endl;

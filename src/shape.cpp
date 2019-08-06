@@ -81,7 +81,7 @@ Shape::Shape(const std::string &text, const std::string &ext) {
         auto loop = std::make_unique<S2Loop>(points);
         loop->Normalize();
         mRegions.push_back(std::move(loop));
-    } else if (ext == "json") {
+    } else if (ext == "geojson") {
         auto json = nlohmann::json::parse(text);
         if (json["type"] == "Polygon" || json["type"] == "MultiPolygon") {
             AddS2RegionFromGeometry(json);
