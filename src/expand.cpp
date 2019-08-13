@@ -225,8 +225,8 @@ class Handler: public osmium::handler::Handler {
   Sorter mRelationRelation;
 };
 
-void cmdImport(int argc, char* argv[]) {
-  cxxopts::Options options("Import", "Convert a a .pbf into an .osmx.");
+void cmdExpand(int argc, char* argv[]) {
+  cxxopts::Options options("Expand", "Expand a a .osm.pbf into an .osmx file");
   options.add_options()
     ("v,verbose", "Verbose output")
     ("cmd", "Command to run", cxxopts::value<string>())

@@ -22,7 +22,7 @@
 #include "nlohmann/json.hpp"
 #include "storage.h"
 #include <cxxopts.hpp>
-#include "shape.h"
+#include "region.h"
 
 
 using namespace std;
@@ -117,8 +117,8 @@ static bool endsWith(const std::string& str, const std::string& suffix)
 
 // must be --bbox, --disc, --poly or --json
 // or --region
-void cmdExport(int argc, char * argv[]) {
-  cxxopts::Options cmd_options("Import", "Convert a a .pbf into an .osmx.");
+void cmdExtract(int argc, char * argv[]) {
+  cxxopts::Options cmd_options("Extract", "Create an .osm.pbf from an .osmx file.");
   cmd_options.add_options()
     ("v,verbose", "Verbose output")
     ("jsonOutput", "JSON progress output")
@@ -141,20 +141,20 @@ void cmdExport(int argc, char * argv[]) {
   bool jsonOutput = result.count("jsonOutput") > 0;
   if (jsonOutput) prog.print();
 
-  std::unique_ptr<Shape> shape;
-  if (result.count("bbox")) shape = std::make_unique<Shape>(result["bbox"].as<string>(),"bbox");
-  else if (result.count("disc")) shape = std::make_unique<Shape>(result["disc"].as<string>(),"disc");
-  else if (result.count("geojson")) shape = std::make_unique<Shape>(result["geojson"].as<string>(),"geojson");
-  else if (result.count("poly")) shape = std::make_unique<Shape>(result["poly"].as<string>(),"poly");
+  std::unique_ptr<Region> region;
+  if (result.count("bbox")) region = std::make_unique<Region>(result["bbox"].as<string>(),"bbox");
+  else if (result.count("disc")) region = std::make_unique<Region>(result["disc"].as<string>(),"disc");
+  else if (result.count("geojson")) region = std::make_unique<Region>(result["geojson"].as<string>(),"geojson");
+  else if (result.count("poly")) region = std::make_unique<Region>(result["poly"].as<string>(),"poly");
   else if (result.count("region")) {
     auto fname = result["region"].as<string>();
     std::ifstream t(fname);
     std::stringstream buffer;
     buffer << t.rdbuf();
-    if (endsWith(fname,"bbox")) shape = std::make_unique<Shape>(buffer.str(),"bbox");
-    if (endsWith(fname,"disc")) shape = std::make_unique<Shape>(buffer.str(),"disc");
-    if (endsWith(fname,"json")) shape = std::make_unique<Shape>(buffer.str(),"geojson");
-    if (endsWith(fname,"poly")) shape = std::make_unique<Shape>(buffer.str(),"poly");
+    if (endsWith(fname,"bbox")) region = std::make_unique<Region>(buffer.str(),"bbox");
+    if (endsWith(fname,"disc")) region = std::make_unique<Region>(buffer.str(),"disc");
+    if (endsWith(fname,"json")) region = std::make_unique<Region>(buffer.str(),"geojson");
+    if (endsWith(fname,"poly")) region = std::make_unique<Region>(buffer.str(),"poly");
   } else {
     cout << "No region specified." << endl;
     exit(0);
@@ -164,7 +164,7 @@ void cmdExport(int argc, char * argv[]) {
   options.set_max_cells(1024);
   options.set_max_level(CELL_INDEX_LEVEL);
   S2RegionCoverer coverer(options);
-  S2CellUnion covering = shape->GetCovering(coverer);
+  S2CellUnion covering = region->GetCovering(coverer);
   if (!jsonOutput) {
     cout << "Query cells: " << covering.cell_ids().size() << endl;
   }

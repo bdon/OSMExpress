@@ -17,11 +17,11 @@ link_directories(vendor/s2geometry)
 link_directories(/usr/local/lib)
 link_directories(vendor/CRoaring)
 
-add_executable(osmx src/main.cpp src/storage.cpp src/import.cpp src/export.cpp src/update.cpp src/shape.cpp)
+add_executable(osmx src/main.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
 target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
 
-add_executable(osmxTest test/test_shape.cpp src/shape.cpp)
+add_executable(osmxTest test/test_region.cpp src/region.cpp)
 set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
 include_directories(include)
 include_directories(vendor/catch2/single_include)

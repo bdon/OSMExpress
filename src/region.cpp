@@ -5,7 +5,7 @@
 #include "s2/s2cap.h"
 #include "s2/s2polygon.h"
 #include "s2/s2loop.h"
-#include "shape.h"
+#include "region.h"
 
 static inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
@@ -30,7 +30,7 @@ std::unique_ptr<S2Polygon> S2PolyFromCoordinates(nlohmann::json &coordinates) {
     return std::make_unique<S2Polygon>(std::move(loopRegions));
 }
 
-void Shape::AddS2RegionFromGeometry(nlohmann::json &geometry) {
+void Region::AddS2RegionFromGeometry(nlohmann::json &geometry) {
     if (geometry["type"] == "Polygon") {
         auto p = S2PolyFromCoordinates(geometry["coordinates"]);
         mRegions.push_back(move(p));
@@ -42,7 +42,7 @@ void Shape::AddS2RegionFromGeometry(nlohmann::json &geometry) {
     }
 }
 
-Shape::Shape(const std::string &text, const std::string &ext) {
+Region::Region(const std::string &text, const std::string &ext) {
     if (ext == "bbox") {
         double minLat,minLon,maxLat,maxLon;
         std::sscanf(text.c_str(), "%lf,%lf,%lf,%lf",&minLat,&minLon,&maxLat,&maxLon);
@@ -99,14 +99,14 @@ Shape::Shape(const std::string &text, const std::string &ext) {
     }
 }
 
-bool Shape::Contains(S2Point p) {
+bool Region::Contains(S2Point p) {
     for (auto const &region : mRegions) {
         if (region->Contains(p)) return true;
     }
     return false;
 }
 
-S2CellUnion Shape::GetCovering(S2RegionCoverer &coverer) {
+S2CellUnion Region::GetCovering(S2RegionCoverer &coverer) {
     S2CellUnion retval;
     for (auto const &region : mRegions) {
         retval = retval.Union(coverer.GetCovering(*region));

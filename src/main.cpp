@@ -16,10 +16,10 @@ using namespace osmx;
 int main(int argc, char* argv[]) {
   vector<string> args(argv, argv+argc);
   auto db_cmds = {"stat","node","way","relation"};
-  if (args[1] == "import") {
-    cmdImport(argc,argv);
-  } else if (args[1] == "export") {
-    cmdExport(argc,argv);
+  if (args[1] == "expand") {
+    cmdExpand(argc,argv);
+  } else if (args[1] == "extract") {
+    cmdExtract(argc,argv);
   } else if (args[1] == "update") {
     cmdUpdate(argc,argv);
   } else if (find(db_cmds.begin(),db_cmds.end(),args[1])) {
