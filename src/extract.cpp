@@ -178,7 +178,8 @@ void cmdExtract(int argc, char * argv[]) {
   CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
 
   db::Metadata metadata(txn);
-  prog.timestamp = metadata.get("osmosis_replication_timestamp");
+  auto timestamp = metadata.get("osmosis_replication_timestamp");
+  prog.timestamp = timestamp;
   if (!jsonOutput) {
     cout << "Snapshot timestamp is " << prog.timestamp  << endl;
   }
@@ -280,6 +281,8 @@ void cmdExtract(int argc, char * argv[]) {
 
   osmium::io::Header header;
   header.set("generator", "osmx 0.0.1");
+  header.set("timestamp", timestamp);
+  header.set("osmosis_replication_timestamp", timestamp);
   osmium::io::Writer writer{result["output"].as<string>(), header, osmium::io::overwrite::allow};
   osmium::memory::CallbackBuffer cb;
   cb.set_callback([&](osmium::memory::Buffer&& buffer) {
