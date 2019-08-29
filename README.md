@@ -24,7 +24,7 @@ OSM Express is being used in production, but should still be considered experime
 
 ### Command line
 
-```
+```bash
 osmx expand planet.osm.pbf planet.osmx # converts a pbf or xml to osmx. Takes 5-10 hours for the planet, resulting in a ~600GB file.
 osmx extract planet.osmx extract.osm.pbf --bbox 40.7411\,-73.9937\,40.7486\,-73.9821 # extract a new pbf for the given bounding box.
 osmx update planet.osmx 3648548.osc 3648548 2019-08-29T17:50:02Z --commit # applies an OsmChange diff.
@@ -35,10 +35,11 @@ Detailed command line usage can be found in the [Manual]().
 
 ### Headers
 
-Here is an example program that uses the C++ headers to read a way from a osmx file and output its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
+[examples/print_wkt.cpp](examples/print_wkt.cpp) is a short, commented C++ program that uses the headers to read a way from a .osmx file and outputs its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
 
-```
-WIP
+```bash
+./print_wkt ../ny.osmx 34633854
+Empire State Building	LINESTRING (-73.9864855 40.7484833,-73.9851554 40.7479226,-73.9848259 40.7483735,-73.9861526 40.7489422,-73.9863111 40.7487242,-73.9863282 40.7487007,-73.9864684 40.7485078,-73.9864855 40.7484833)
 ```
 
 Detailed C++ usage can be found in the [Development Docs]().
