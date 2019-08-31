@@ -5,7 +5,13 @@ set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "-pthread")
 
-add_subdirectory(vendor/CRoaring)
+add_subdirectory(vendor/CRoaring EXCLUDE_FROM_ALL)
+add_subdirectory(vendor/capnproto)
+add_subdirectory(vendor/s2geometry EXCLUDE_FROM_ALL)
+
+add_custom_target(liblmdb COMMAND make
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb
+)
 
 include_directories(vendor/libosmium/include)
 include_directories(vendor/protozero/include)
@@ -23,13 +29,13 @@ link_directories(vendor/capnproto/c++/src/capnp)
 link_directories(vendor/capnproto/c++/src/kj)
 
 add_executable(osmx src/main.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
+add_dependencies(osmx liblmdb s2)
 target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
-
 add_executable(osmxTest test/test_region.cpp src/region.cpp)
 set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
 include_directories(include)
-include_directories(vendor/catch2/single_include)
+include_directories(vendor/Catch2/single_include)
 target_link_libraries(osmxTest s2)
 enable_testing()
 add_test(osmxTest osmxTest)
