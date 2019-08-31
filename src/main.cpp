@@ -6,10 +6,6 @@
 
 #include "storage.h"
 
-// both S2 and osmium define these.
-//#undef __BYTE_ORDER
-//#undef __LITTLE_ENDIAN 
-
 using namespace std;
 using namespace osmx;
 
