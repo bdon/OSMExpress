@@ -1,6 +1,7 @@
 #include <string>
 
 #include "roaring.hh"
+#include "roaring64map.hh"
 #include "lmdb.h"
 #include "s2/s2latlng.h"
 #include "s2/s2region_coverer.h"
