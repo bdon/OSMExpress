@@ -5,10 +5,12 @@ set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "-pthread")
 
+add_subdirectory(vendor/CRoaring)
+
 include_directories(vendor/libosmium/include)
 include_directories(vendor/protozero/include)
 include_directories(vendor/s2geometry/src)
-include_directories(vendor/CRoaring)
+include_directories(vendor/CRoaring/cpp)
 include_directories(vendor/cxxopts/include)
 include_directories(/usr/local/include)
 include_directories(depends)
