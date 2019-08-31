@@ -16,3 +16,12 @@
 [submodule "vendor/Catch2"]
 	path = vendor/Catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "vendor/json"]
+	path = vendor/json
+	url = https://github.com/nlohmann/json.git
+[submodule "vendor/lmdb"]
+	path = vendor/lmdb
+	url = https://github.com/LMDB/lmdb.git
+[submodule "vendor/capnproto"]
+	path = vendor/capnproto
+	url = https://github.com/capnproto/capnproto.git
