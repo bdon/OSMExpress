@@ -5,7 +5,7 @@
 #include "s2/s2cap.h"
 #include "s2/s2polygon.h"
 #include "s2/s2loop.h"
-#include "region.h"
+#include "osmx/region.h"
 
 static inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {

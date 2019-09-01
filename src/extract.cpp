@@ -1,30 +1,19 @@
 #include <string>
-
+#include <fstream>
 #include "roaring.hh"
 #include "roaring64map.hh"
-#include "lmdb.h"
 #include "s2/s2latlng.h"
 #include "s2/s2region_coverer.h"
 #include "s2/s2latlng_rect.h"
-
-#include "kj/io.h"
-#include "capnp/message.h"
-#include "messages.capnp.h"
-#include "capnp/serialize.h"
-
-#include "util.h"
-
 #include "osmium/io/any_output.hpp"
 #include "osmium/util/progress_bar.hpp"
 #include "osmium/memory/callback_buffer.hpp"
 #include "osmium/builder/attr.hpp"
 #include "osmium/builder/osm_object_builder.hpp"
-
+#include "cxxopts.hpp"
 #include "nlohmann/json.hpp"
-#include "storage.h"
-#include <cxxopts.hpp>
-#include "region.h"
-
+#include "osmx/storage.h"
+#include "osmx/region.h"
 
 using namespace std;
 using namespace osmx;

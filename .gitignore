@@ -6,7 +6,6 @@ CMakeFiles
 Makefile
 *.pbf
 *.cmake
-osmx
 osmxTest
 venv
 depends

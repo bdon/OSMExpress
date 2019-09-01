@@ -2,7 +2,6 @@
 #include <chrono>
 #include <iostream>
 #include "osmium/tags/taglist.hpp"
-#include <fstream>
 
 #define CHECK(x) if (0 != x) { printf("%s, file %s, line %d.\n", mdb_strerror(x), __FILE__, __LINE__); abort(); }
 

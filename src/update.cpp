@@ -1,25 +1,15 @@
 #include <iostream>
 #include <cassert>
-#include "lmdb.h"
+#include <set>
+#include "cxxopts.hpp"
 #include "roaring.hh"
-#include <cxxopts.hpp>
-
 #include "osmium/handler.hpp"
 #include "osmium/io/any_input.hpp"
 #include "osmium/visitor.hpp"
 #include "osmium/util/progress_bar.hpp"
-
-#include "storage.h"
-#include "util.h"
-#include <set>
-
 #include "s2/s2latlng.h"
 #include "s2/s2cell_union.h"
-
-#include "kj/io.h"
-#include "capnp/message.h"
-#include "messages.capnp.h"
-#include "capnp/serialize.h"
+#include "osmx/storage.h"
 
 using namespace std;
 using namespace osmx;

@@ -1,10 +1,6 @@
 #include <vector>
-#include "lmdb.h"
-
-#include "util.h"
-#include "osmx.h"
-
-#include "storage.h"
+#include "osmx/osmx.h"
+#include "osmx/storage.h"
 
 using namespace std;
 using namespace osmx;

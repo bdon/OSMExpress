@@ -1,23 +1,11 @@
 #pragma once
-#include <mutex>
-#include <thread>
-#include <map>
-#include "kj/io.h"
-#include "util.h"
-#include "s2/s2cell_id.h"
-#include "s2/s2cell_union.h"
-#include "osmium/osm/location.hpp"
 #include "lmdb.h"
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <fstream>
-#include <queue>
-
+#include "osmium/osm/location.hpp"
+#include "kj/io.h"
 #include "capnp/message.h"
-#include "messages.capnp.h"
 #include "capnp/serialize.h"
-
+#include "osmx/messages.capnp.h"
+#include "osmx/util.h"
 
 namespace osmx { namespace db {
 
@@ -62,6 +50,7 @@ class Locations : public Noncopyable {
   Locations(MDB_txn *txn);
   void put(uint64_t id, const osmium::Location value, int flags = 0);
   void del(uint64_t id);
+  bool exists(uint64_t id);
   osmium::Location get(uint64_t id) const;
 
   private:

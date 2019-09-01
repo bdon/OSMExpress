@@ -1,20 +1,18 @@
-#include "lmdb.h"
+#include <iomanip>
+#include <fstream>
 #include "osmium/handler.hpp"
 #include "osmium/visitor.hpp"
 #include "osmium/io/any_input.hpp"
 #include "osmium/util/progress_bar.hpp"
 #include "osmium/io/reader_with_progress_bar.hpp"
-#include <cxxopts.hpp>
-
+#include "cxxopts.hpp"
 #include "kj/io.h"
 #include "capnp/message.h"
-#include "messages.capnp.h"
 #include "capnp/serialize.h"
-
 #include "s2/s2latlng.h"
-
-#include "storage.h"
-#include "util.h"
+#include "s2/s2cell_id.h"
+#include "osmx/storage.h"
+#include "osmx/messages.capnp.h"
 
 using namespace std;
 using namespace osmx;

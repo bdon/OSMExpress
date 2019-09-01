@@ -1,4 +1,4 @@
-#include "storage.h"
+#include "osmx/storage.h"
 
 namespace osmx { namespace db {
   
@@ -115,6 +115,14 @@ osmium::Location Locations::get(uint64_t id) const {
   CHECK(retval);
   osmium::Location v = toLoc(*((uint64_t *)data.mv_data));
   return v;
+}
+
+bool Locations::exists(uint64_t id) {
+  MDB_val key, data;
+  key.mv_size = sizeof(uint64_t);
+  key.mv_data = (void *)&id;
+  int retval = mdb_get(mTxn, mDbi, &key, &data);
+  return retval != MDB_NOTFOUND;
 }
 
 Index::Index(MDB_txn *txn, const std::string &name) : mTxn(txn) {
