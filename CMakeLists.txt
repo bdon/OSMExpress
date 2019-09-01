@@ -28,7 +28,7 @@ link_directories(vendor/lmdb/libraries/liblmdb)
 link_directories(vendor/capnproto/c++/src/capnp)
 link_directories(vendor/capnproto/c++/src/kj)
 
-add_executable(osmx src/main.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
+add_executable(osmx src/cmd.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
 add_dependencies(osmx liblmdb s2)
 target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)

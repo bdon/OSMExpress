@@ -171,4 +171,42 @@ void IndexWriter::commit() {
   CHECK(mdb_txn_commit(mTxn));
 }
 
+void traverseCell(MDB_cursor *cursor,S2CellId cell_id,Roaring64Map &set) {
+  S2CellId start = cell_id.child_begin(CELL_INDEX_LEVEL);
+  S2CellId end = cell_id.child_end(CELL_INDEX_LEVEL);
+  MDB_val key, data;
+  key.mv_size = sizeof(S2CellId);
+  key.mv_data = (void *)&start;
+  CHECK(mdb_cursor_get(cursor,&key,&data,MDB_SET_RANGE));
+  while (*((S2CellId *)key.mv_data) < end) {
+    int retval_values = mdb_cursor_get(cursor,&key,&data,MDB_GET_MULTIPLE);
+    while (0 == retval_values) {
+      for (int i = 0; i < data.mv_size/sizeof(uint64_t); i++) {
+        uint64_t *d = (uint64_t*)data.mv_data;
+        set.add(*(d+i));
+      }
+      retval_values = mdb_cursor_get(cursor,&key,&data,MDB_NEXT_MULTIPLE);
+    }
+    mdb_cursor_get(cursor,&key,&data,MDB_NEXT_NODUP);
+  }
+}
+
+void traverseReverse(MDB_cursor *cursor,uint64_t from, Roaring64Map &set) {
+  MDB_val key, data;
+  key.mv_size = sizeof(uint64_t);
+  key.mv_data = (void *)&from;
+
+  if (mdb_cursor_get(cursor,&key,&data,MDB_SET) != 0) return;
+  int retval_values = mdb_cursor_get(cursor,&key,&data,MDB_GET_MULTIPLE);
+  while (0 == retval_values) {
+    for (int i = 0; i < data.mv_size/sizeof(uint64_t); i++) {
+      uint64_t *d = (uint64_t*)data.mv_data;
+      uint64_t to_id = *(d+i);
+      set.add(to_id);
+    }
+    retval_values = mdb_cursor_get(cursor,&key,&data,MDB_NEXT_MULTIPLE);
+  }
+}
+
 }}
+

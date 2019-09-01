@@ -1,7 +1,5 @@
 #include <string>
 #include <fstream>
-#include "roaring.hh"
-#include "roaring64map.hh"
 #include "s2/s2latlng.h"
 #include "s2/s2region_coverer.h"
 #include "s2/s2latlng_rect.h"
@@ -60,45 +58,6 @@ private:
     ExportProgress &expprog;
     uint64_t last_prog = 0;
 };
-
-
-
-void traverseCell(MDB_cursor *cursor,S2CellId cell_id,Roaring64Map &set) {
-  S2CellId start = cell_id.child_begin(CELL_INDEX_LEVEL);
-  S2CellId end = cell_id.child_end(CELL_INDEX_LEVEL);
-  MDB_val key, data;
-  key.mv_size = sizeof(S2CellId);
-  key.mv_data = (void *)&start;
-  CHECK(mdb_cursor_get(cursor,&key,&data,MDB_SET_RANGE));
-  while (*((S2CellId *)key.mv_data) < end) {
-    int retval_values = mdb_cursor_get(cursor,&key,&data,MDB_GET_MULTIPLE);
-    while (0 == retval_values) {
-      for (int i = 0; i < data.mv_size/sizeof(uint64_t); i++) {
-        uint64_t *d = (uint64_t*)data.mv_data;
-        set.add(*(d+i));
-      }
-      retval_values = mdb_cursor_get(cursor,&key,&data,MDB_NEXT_MULTIPLE);
-    }
-    mdb_cursor_get(cursor,&key,&data,MDB_NEXT_NODUP);
-  }
-}
-
-void traverseReverse(MDB_cursor *cursor,uint64_t from, Roaring64Map &set) {
-  MDB_val key, data;
-  key.mv_size = sizeof(uint64_t);
-  key.mv_data = (void *)&from;
-
-  if (mdb_cursor_get(cursor,&key,&data,MDB_SET) != 0) return;
-  int retval_values = mdb_cursor_get(cursor,&key,&data,MDB_GET_MULTIPLE);
-  while (0 == retval_values) {
-    for (int i = 0; i < data.mv_size/sizeof(uint64_t); i++) {
-      uint64_t *d = (uint64_t*)data.mv_data;
-      uint64_t to_id = *(d+i);
-      set.add(to_id);
-    }
-    retval_values = mdb_cursor_get(cursor,&key,&data,MDB_NEXT_MULTIPLE);
-  }
-}
 
 static bool endsWith(const std::string& str, const std::string& suffix)
 {
@@ -181,7 +140,7 @@ void cmdExtract(int argc, char * argv[]) {
     CHECK(mdb_dbi_open(txn, "cell_node", MDB_INTEGERKEY | MDB_DUPSORT | MDB_DUPFIXED | MDB_INTEGERDUP, &dbi));
     CHECK(mdb_cursor_open(txn,dbi,&cursor));
     for (auto cell_id : covering.cell_ids()) {
-      traverseCell(cursor,cell_id,node_ids);
+      db::traverseCell(cursor,cell_id,node_ids);
       section.tick();
     }
     mdb_cursor_close(cursor);
@@ -194,7 +153,7 @@ void cmdExtract(int argc, char * argv[]) {
     CHECK(mdb_dbi_open(txn, "node_way", MDB_INTEGERKEY | MDB_DUPSORT | MDB_DUPFIXED | MDB_INTEGERDUP, &dbi));
     CHECK(mdb_cursor_open(txn,dbi,&cursor));
     for (auto const &node_id : node_ids) {
-      traverseReverse(cursor,node_id,way_ids);
+      db::traverseReverse(cursor,node_id,way_ids);
       section.tick();
     }
   }
@@ -208,7 +167,7 @@ void cmdExtract(int argc, char * argv[]) {
     CHECK(mdb_dbi_open(txn, "node_relation", MDB_INTEGERKEY | MDB_DUPSORT | MDB_DUPFIXED | MDB_INTEGERDUP, &dbi));
     CHECK(mdb_cursor_open(txn,dbi,&cursor));
     for (auto const &node_id : node_ids) {
-      traverseReverse(cursor,node_id,relation_ids);
+      db::traverseReverse(cursor,node_id,relation_ids);
     }
   }
 
@@ -218,7 +177,7 @@ void cmdExtract(int argc, char * argv[]) {
     CHECK(mdb_dbi_open(txn, "way_relation", MDB_INTEGERKEY | MDB_DUPSORT | MDB_DUPFIXED | MDB_INTEGERDUP, &dbi));
     CHECK(mdb_cursor_open(txn,dbi,&cursor));
     for (auto const &way_id : way_ids) {
-      traverseReverse(cursor,way_id,relation_ids);
+      db::traverseReverse(cursor,way_id,relation_ids);
     }
   }
 
@@ -231,14 +190,14 @@ void cmdExtract(int argc, char * argv[]) {
     Roaring64Map discovered_relations_2;
 
     for (auto const &relation_id : relation_ids) {
-      traverseReverse(cursor,relation_id,discovered_relations);
+      db::traverseReverse(cursor,relation_id,discovered_relations);
     }
 
     relation_ids |= discovered_relations;
 
     while(true) {
       for (auto const &relation_id : discovered_relations) {
-        traverseReverse(cursor,relation_id,discovered_relations_2);
+        db::traverseReverse(cursor,relation_id,discovered_relations_2);
       }
       int num_discovered = 0;
       for (auto discovered_relation_id : discovered_relations_2) {

@@ -13,3 +13,4 @@ a.out
 *.osc
 *.osc.gz
 __pycache__
+/osmx

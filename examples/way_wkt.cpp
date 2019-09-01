@@ -1,25 +1,24 @@
 #include <vector>
-#include "osmx.h"
-#include "storage.h"
+#include <iomanip>
+#include "osmx/storage.h"
 
 using namespace std;
-using namespace osmx;
 
 // Example of a very simple C++ program that uses osmx headers
 // to open a database, look up a way by ID, and assemble a WKT geometry from its nodes.
-// Usage: ./print_wkt <OSMX_FILE> <WAY_ID>
+// Usage: ./print_wkt OSMX_FILE WAY_ID
 
 int main(int argc, char* argv[]) {
   vector<string> args(argv, argv+argc);
 
   // Opening a database: create an Environment, and then a Transaction within the environment. 
-  MDB_env* env = db::createEnv(args[1]);
+  MDB_env* env = osmx::db::createEnv(args[1]);
   MDB_txn* txn;
   CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
 
   // Create a Database handle for each element type within the Transaction.
-  db::Locations locations(txn);
-  db::Elements ways(txn,"ways");
+  osmx::db::Locations locations(txn);
+  osmx::db::Elements ways(txn,"ways");
 
   // Fetch a Way element by ID.
   auto message = ways.getReader(stol(args[2]));

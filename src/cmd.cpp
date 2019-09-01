@@ -1,6 +1,6 @@
 #include <vector>
-#include "osmx/osmx.h"
 #include "osmx/storage.h"
+#include "osmx/cmd.h"
 
 using namespace std;
 using namespace osmx;

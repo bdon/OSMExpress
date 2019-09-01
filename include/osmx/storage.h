@@ -6,6 +6,8 @@
 #include "capnp/serialize.h"
 #include "osmx/messages.capnp.h"
 #include "osmx/util.h"
+#include "s2/s2cell_id.h"
+#include "roaring64map.hh"
 
 namespace osmx { namespace db {
 
@@ -82,5 +84,8 @@ class IndexWriter : public Noncopyable {
   std::string mName;
   int mWrites = 0;
 };
+
+void traverseCell(MDB_cursor *cursor,S2CellId cell_id,Roaring64Map &set);
+void traverseReverse(MDB_cursor *cursor,uint64_t from, Roaring64Map &set);
 
 } }
