@@ -1,12 +1,12 @@
 # OSM Express
 
-OSM Express is an ultra-fast storage format for OpenStreetMap data that powers [Protomaps](https://protomaps.com) tools.
+OSM Express is a fast storage format for OpenStreetMap data that powers [Protomaps](https://protomaps.com) tools.
 
 * **Random access:** Look up nodes, ways and relations by ID; fetch member nodes to construct geometries.
-* **Spatial indexing:** Nodes are bucketed into [S2 Geometry](http://s2geometry.io) cells. Access a region by providing a cell covering; works for non-rectangles.
-* **Scalable:** OSM Express works the same way for OSM data of any size, from a city-sized extract to the entire planet. Planet-scale operations work efficiently on consumer grade hardware.
-* **In-place updates:** Included are scripts to download minutely replication files and apply them to an .osmx database.
-* **Concurrent access:** No running server process is required. Writing updates doesn't block reader access. Multiple processes can read concurrently, operating on isolated views of the database.
+* **Spatial indexing:** Nodes are bucketed into [S2 Geometry](http://s2geometry.io) cells. Access a region by providing a cell covering; works for nonrectanglar regions.
+* **Scalable:** OSM Express works the same way for OSM data of any size, from a small city to the entire planet. The entire planet can be worked with efficiently on typical hardware such as a laptop computer.
+* **In-place updates:** Included are scripts to download minutely changesets from [planet.openstreetmap.org](https://planet.openstreetmap.org) from  and apply them to an .osmx database.
+* **Concurrent access:** Multiple processes can open the database file for reading simultaneously. No running server process is required. Writing minutely updates doesn't block reader access. Reads and writes are transactional. 
 
 ## Details
 
@@ -32,11 +32,11 @@ osmx stat planet.osmx # Print statistics, seqnum and timestamp.
 osmx query planet.osmx way 34633854 # look up an element by ID.
 ```
 
-Detailed command line usage can be found in the [Manual]().
+Detailed command line usage can be found in the [Manual](https://protomaps.com/docs/osmexpress).
 
 ### Headers
 
-[examples/print_wkt.cpp](examples/print_wkt.cpp) is a short, commented C++ program that uses the headers to read a way from a .osmx file and outputs its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
+The C++ API is currently very rough with minimal abstraction. [examples/print_wkt.cpp](examples/print_wkt.cpp) is a short, commented C++ program that uses the headers to read a way from a .osmx file and outputs its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
 
 ```bash
 ./print_wkt ../ny.osmx 34633854
@@ -45,7 +45,7 @@ Empire State Building	LINESTRING (-73.9864855 40.7484833,-73.9851554 40.7479226,
 
 [examples/bbox_wkt.cpp](examples/bbox_wkt.cpp) is a more complex example that takes a bounding box as input, and returns WKT LineStrings for ways that overlap the bbox. This overlap is an approximation based on cells and may include ways outside the bounding box.
 
-Detailed C++ usage can be found in the [Development Docs]().
+Detailed C++ usage can be found in the [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide).
 
 ### Other languages
 
