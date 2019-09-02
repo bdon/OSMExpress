@@ -14,22 +14,22 @@ int main(int argc, char* argv[]) {
     cmdExtract(argc,argv);
   } else if (args[1] == "update") {
     cmdUpdate(argc,argv);
-  } else if (find(db_cmds.begin(),db_cmds.end(),args[1])) {
+  } else if (args[1] == "query") {
     MDB_env* env = db::createEnv(args[2]);
     MDB_txn* txn;
     CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
 
-    if (args[1] == "node") {
-      auto id = stol(args[3]);
+    if (args[3] == "node") {
+      auto id = stol(args[4]);
       auto location = db::Locations(txn).get(id);
       cout << location << endl;
       auto tags = db::Elements(txn,"nodes").getReader(id).getRoot<Node>().getTags();
       for (int i = 0; i < tags.size() / 2; i++) {
         cout << tags[i*2].cStr() << "=" << tags[i*2+1].cStr() << "\n";
       }
-    } else if (args[1] == "way") {
+    } else if (args[3] == "way") {
       db::Elements ways(txn,"ways");
-      auto message = ways.getReader(stol(args[3]));
+      auto message = ways.getReader(stol(args[4]));
       auto way = message.getRoot<Way>();
       for (auto node_id : way.getNodes()) {
         cout << node_id << " ";
@@ -40,9 +40,9 @@ int main(int argc, char* argv[]) {
         cout << tags[i*2].cStr() << "=" << tags[i*2+1].cStr() << " ";
       }
       cout << endl;
-    } else if (args[1] == "relation") {
+    } else if (args[3] == "relation") {
       db::Elements relations(txn,"relations");
-      uint64_t relation_id = stol(args[3]);
+      uint64_t relation_id = stol(args[4]);
       auto message = relations.getReader(relation_id);
       auto relation = message.getRoot<Relation>();
       auto tags = relation.getTags();
