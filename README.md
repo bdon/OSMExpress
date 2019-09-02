@@ -18,6 +18,10 @@ OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-
 * [CRoaring](https://roaringbitmap.org) for in-memory representation of ID sets as compressed bitmaps.
 * [S2 Geometry](http://s2geometry.io) for indexing of geographic coordinates.
 
+## Installation
+
+[See the manual for instructions on building from source](https://protomaps.com/docs/osmexpress/programming-guide/). 
+
 ## Usage
 
 OSM Express is being used in production, but should still be considered experimental with an unstable API. The simplest way to use it is via the `osmx` command line program. It can also be embedded into a C++ project by including headers.
