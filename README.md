@@ -16,10 +16,10 @@ OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](h
 
 OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-level libraries:
 
-* [Libosmium](https://osmcode.org/libosmium/index.html) for the reading and writing of OSM data.
-* [LMDB](https://symas.com/lmdb) for a `mmap`-based ACID key-value store with fast cursor-based iteration.
-* [Cap'n Proto](https://capnproto.org) for in-memory and on-disk storage of OSM elements.
-* [CRoaring](https://roaringbitmap.org) for in-memory storage of ID sets as compressed bitmaps.
+* [Libosmium](https://osmcode.org/libosmium/index.html) for the reading and writing of .osm.pbf files.
+* [LMDB](https://symas.com/lmdb) for a memory-mapped ACID key-value store with fast cursor iteration.
+* [Cap'n Proto](https://capnproto.org) for in-memory and on-disk representation of OSM elements.
+* [CRoaring](https://roaringbitmap.org) for in-memory representation of ID sets as compressed bitmaps.
 * [S2 Geometry](http://s2geometry.io) for indexing of geographic coordinates.
 
 ## Usage
@@ -40,10 +40,10 @@ Detailed command line usage can be found in the [Manual](https://protomaps.com/d
 
 ### Headers
 
-The C++ API is currently very rough with minimal abstraction. [examples/print_wkt.cpp](examples/print_wkt.cpp) is a short, commented C++ program that uses the headers to read a way from a .osmx file and outputs its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
+The C++ API is currently very rough with minimal abstraction. [examples/way_wkt.cpp](examples/way_wkt.cpp) is a short, commented C++ program that uses the headers to read a way from a .osmx file and outputs its [Well-Known Text](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) LineString geometry.
 
 ```bash
-./print_wkt ../ny.osmx 34633854
+./way_wkt ../ny.osmx 34633854
 Empire State Building	LINESTRING (-73.9864855 40.7484833,-73.9851554 40.7479226,-73.9848259 40.7483735,-73.9861526 40.7489422,-73.9863111 40.7487242,-73.9863282 40.7487007,-73.9864684 40.7485078,-73.9864855 40.7484833)
 ```
 
