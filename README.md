@@ -1,5 +1,9 @@
 # OSM Express
 
+![Screenshot](examples/screenshot.png)
+
+[Manual](https://protomaps.com/docs/osmexpress/), [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide/)
+
 OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools.
 
 * **Random access:** Look up nodes, ways and relations by ID; fetch member nodes to construct geometries.
