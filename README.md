@@ -32,7 +32,7 @@ OSM Express is being used in production, but should still be considered experime
 osmx expand planet.osm.pbf planet.osmx # converts a pbf or xml to osmx. Takes 5-10 hours for the planet, resulting in a ~600GB file.
 osmx extract planet.osmx extract.osm.pbf --bbox 40.7411\,-73.9937\,40.7486\,-73.9821 # extract a new pbf for the given bounding box.
 osmx update planet.osmx 3648548.osc 3648548 2019-08-29T17:50:02Z --commit # applies an OsmChange diff.
-osmx stat planet.osmx # Print statistics, seqnum and timestamp.
+osmx query planet.osmx # Print statistics, seqnum and timestamp.
 osmx query planet.osmx way 34633854 # look up an element by ID.
 ```
 

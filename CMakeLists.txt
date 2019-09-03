@@ -9,7 +9,7 @@ add_subdirectory(vendor/CRoaring EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/capnproto)
 add_subdirectory(vendor/s2geometry EXCLUDE_FROM_ALL)
 
-add_custom_target(liblmdb COMMAND make
+add_custom_target(build_lmdb COMMAND make
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb
 )
 
@@ -29,8 +29,8 @@ link_directories(vendor/capnproto/c++/src/capnp)
 link_directories(vendor/capnproto/c++/src/kj)
 
 add_executable(osmx src/cmd.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
-add_dependencies(osmx liblmdb s2)
-target_link_libraries(osmx lmdb z expat bz2 s2 capnp kj roaring)
+add_dependencies(osmx build_lmdb s2)
+target_link_libraries(osmx z expat bz2 s2 capnp kj roaring ${CMAKE_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb/liblmdb.a)
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
 add_executable(osmxTest test/test_region.cpp src/region.cpp)
 set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
