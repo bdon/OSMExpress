@@ -11,6 +11,7 @@ OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](h
 * **Scalable:** OSM Express works the same way for OSM data of any size, from a small city to the entire planet. The entire planet can be worked with efficiently on typical hardware such as a laptop computer.
 * **In-place updates:** Included are scripts to download minutely changesets from [planet.openstreetmap.org](https://planet.openstreetmap.org) and apply them to an .osmx database.
 * **Concurrent access:** Multiple processes can open the database file for reading simultaneously. No running server process is required. Writing minutely updates doesn't block reader access. Reads and writes are transactional. 
+* **Portable:** Access an .osmx file from other languages such as Python.
 
 ## Details
 
@@ -57,7 +58,11 @@ Detailed C++ usage can be found in the [Programming Guide](https://protomaps.com
 
 ### Other languages
 
-TBD
+A Python library with basic object lookup functionality can be installed via:
+
+`pip install osmx`
+
+See [python/README.md](/python/README.md) for a short example of how to read OSM objects, tags and coordinates.
 
 ## License and Development
 
