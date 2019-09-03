@@ -1,9 +1,10 @@
-import capnp
-import lmdb
 import sys
+import os
+import lmdb
+import capnp
 
 capnp.remove_import_hook()
-messages_capnp = capnp.load('../../include/osmx/messages.capnp')
+messages_capnp = capnp.load(os.path.join(os.path.dirname(__file__), 'messages.capnp'))
 
 def tag_dict(tag_list):
     it = enumerate(tag_list)

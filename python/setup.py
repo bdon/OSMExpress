@@ -5,12 +5,12 @@ with open("README.md", "r") as fh:
 
 requirements = [
     'lmdb~=0.97',
-    'pycapn~=0.6.4',
+    'pycapnp~=0.6.4',
 ]
 
 setuptools.setup(
     name='osmx',
-    version='0.0.1',
+    version='0.0.2',
     author="Brandon Liu",
     author_email='brandon@protomaps.com',
     description='Read OSM Express (.osmx) database files.',
@@ -26,5 +26,5 @@ setuptools.setup(
     ],
     install_requires = requirements,
     requires_python='>=3.0',
-    package_data={'osmx':['mappings/*.yml']}
+    package_data={'osmx':['messages.capnp']}
 )
