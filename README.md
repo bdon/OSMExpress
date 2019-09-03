@@ -23,6 +23,8 @@ OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-
 * [CRoaring](https://roaringbitmap.org) for in-memory representation of ID sets as compressed bitmaps.
 * [S2 Geometry](http://s2geometry.io) for indexing of geographic coordinates.
 
+Nodes, ways and relations and their tags or members are directly stored in the database, but no object versions, username information or timestamps are saved. 
+
 ## Installation
 
 [See the manual for instructions on building from source](https://protomaps.com/docs/osmexpress/programming-guide/). 
