@@ -53,10 +53,10 @@ int main(int argc, char* argv[]) {
       for (auto const &member : members) {
         cout << member.getRef() << endl;
       }
-    } else if (args[1] == "timestamp") {
+    } else if (args[3] == "timestamp") {
       db::Metadata metadata(txn);
       cout << metadata.get("osmosis_replication_timestamp") << endl;
-    } else if (args[1] == "seqnum") {
+    } else if (args[3] == "seqnum") {
       db::Metadata metadata(txn);
       cout << metadata.get("osmosis_replication_sequence_number") << endl;
     } else {

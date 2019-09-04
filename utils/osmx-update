@@ -18,15 +18,17 @@ try:
   s = ReplicationServer(sys.argv[2])
 
   # OSMX always uses minutely timestamps internally - try integrating daily
-  seqnum = int(subprocess.check_output([osmx,'seqnum',sys.argv[1]]))
+  seqnum = subprocess.check_output([osmx,'query',sys.argv[1],'seqnum'])
 
-  if not seqnum:
-    timestamp = subprocess.check_output([osmx,'timestamp',sys.argv[1]])
+  if not seqnum.strip():
+    timestamp = subprocess.check_output([osmx,'query',sys.argv[1],'timestamp'])
     timestamp = timestamp.decode('utf-8').strip()
     timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
     timestamp = timestamp.replace(tzinfo=timezone.utc)
     print('Timestamp is {0}'.format(timestamp))
     seqnum = s.timestamp_to_sequence(timestamp)
+
+  seqnum = int(seqnum)
 
   print('Sequence number is {0}'.format(seqnum))
 
