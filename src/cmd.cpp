@@ -76,5 +76,7 @@ int main(int argc, char* argv[]) {
 
     mdb_env_sync(env,true);
     mdb_env_close(env);
+  } else {
+    cout << "Valid commands: expand, extract, update, query" << endl;
   }
 }
