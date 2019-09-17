@@ -234,6 +234,16 @@ void cmdExpand(int argc, char* argv[]) {
   options.parse_positional({"cmd","input", "output"});
   auto result = options.parse(argc, argv);
 
+  if (result.count("input") == 0 || result.count("output") == 0) {
+    cout << "Usage: osmx expand OSM_FILE OSMX_FILE [OPTIONS]" << endl << endl;
+    cout << "OSM_FILE must be an OSM XML or PBF." << endl << endl;
+    cout << "EXAMPLE:" << endl;
+    cout << " osmx expand planet_latest.osm.pbf planet.osmx" << endl << endl;
+    cout << "OPTIONS:" << endl;
+    cout << " --v,--verbose: verbose output." << endl;
+    exit(1);
+  }
+
   string input =result["input"].as<string>();
   string output = result["output"].as<string>();
 
@@ -265,8 +275,6 @@ void cmdExpand(int argc, char* argv[]) {
     Handler handler(env,txn,tempDir);
     osmium::apply(reader, handler);
   }
-
-  //CHECK(mdb_txn_commit(txn));
 
   assert(rmdir(tempDir.c_str()) == 0);
 }

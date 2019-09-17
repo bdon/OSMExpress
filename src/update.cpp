@@ -221,6 +221,19 @@ void cmdUpdate(int argc, char* argv[]) {
 
   cmdoptions.parse_positional({"cmd","osmx","osc","seqnum","timestamp"});
   auto result = cmdoptions.parse(argc, argv);
+
+  if (result.count("osmx") == 0 || result.count("osc") == 0 || \
+    result.count("seqnum") == 0 || result.count("timestamp") == 0) {
+    cout << "Usage: osmx update OSMX_FILE OSC_FILE SEQNUM TIMESTAMP [OPTIONS]" << endl;
+    cout << "Applies OSC_FILE and saves SEQNUM and TIMESTAMP into the metadata table." << endl << endl;
+    cout << "EXAMPLE:" << endl;
+    cout << " osmx update planet.osmx 123456.osc 123456 2019-09-05T00:00:00Z --commit" << endl << endl;
+    cout << "OPTIONS:" << endl;
+    cout << " --v,--verbose: verbose output." << endl;
+    cout << " --commit: Actually commit the transaction; otherwise runs the update and rolls back." << endl;
+    exit(1);
+  }
+
   string osmx = result["osmx"].as<string>();
   string osc = result["osc"].as<string>();
   bool verbose = result.count("verbose") > 0;

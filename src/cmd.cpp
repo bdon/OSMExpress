@@ -15,6 +15,19 @@ int main(int argc, char* argv[]) {
   } else if (args[1] == "update") {
     cmdUpdate(argc,argv);
   } else if (args[1] == "query") {
+    if (argc == 2) {
+      cout << "USAGE:" << endl;
+      cout << " osmx query OSMX_FILE [OPTIONS]" << endl << endl;
+      cout << "EXAMPLES:" << endl;
+      cout << " osmx query planet.osmx" << endl;
+      cout << " osmx query planet.osmx way 123456" << endl << endl;
+      cout << "OPTIONS:" << endl;
+      cout << " none specified: print table statistics." << endl;
+      cout << " [node,way,relation] ID: print OSM object" << endl;
+      cout << " timestamp: print data timestamp" << endl;
+      cout << " seqnum: print replication seqence number" << endl;
+      exit(1);
+    }
     MDB_env* env = db::createEnv(args[2]);
     MDB_txn* txn;
     CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
@@ -77,6 +90,11 @@ int main(int argc, char* argv[]) {
     mdb_env_sync(env,true);
     mdb_env_close(env);
   } else {
-    cout << "Valid commands: expand, extract, update, query" << endl;
+    cout << "Usage: osmx COMMAND [ARG...]" << endl << endl;
+    cout << "COMMANDS:" << endl;
+    cout << " expand   Convert an OSM PBF or XML to an osmx database." << endl;
+    cout << " extract  Create a regional extract PBF from an osmx database." << endl;
+    cout << " update   Apply an OSM changeset to an osmx database." << endl;
+    cout << " query    Look up objects by ID in an osmx database." << endl;
   }
 }

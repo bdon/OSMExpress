@@ -83,6 +83,21 @@ void cmdExtract(int argc, char * argv[]) {
   cmd_options.parse_positional({"cmd","osmx","output"});
   auto result = cmd_options.parse(argc, argv);
 
+  if (result.count("osmx") == 0 || result.count("output") == 0) {
+    cout << "Usage: osmx extract OSMX_FILE OUTPUT_FILE [OPTIONS]" << endl << endl;
+    cout << "EXAMPLE:" << endl;
+    cout << " osmx extract planet.osmx extract.osm.pbf --region region.json" << endl << endl;
+    cout << "OPTIONS:" << endl;
+    cout << " --v,--verbose: verbose output." << endl;
+    cout << " --jsonOutput: log progress as JSON messages." << endl;
+    cout << " --bbox MIN_LAT,MIN_LON,MAX_LAT,MAX_LON: region is lat/lon bbox" << endl;
+    cout << " --disc CENTER_LAT,CENTER_LON,R_DEGREES: region is disc" << endl;
+    cout << " --geojson GEOJSON: region is an areal GeoJSON feature or geometry" << endl;
+    cout << " --poly POLY: region is an Osmosis polygon" << endl;
+    cout << " --region FILE: text file with .bbox, .disc, .json or .poly extension" << endl;
+    exit(1);
+  }
+
   auto startTime = std::chrono::high_resolution_clock::now();
   ExportProgress prog;
   string err;
