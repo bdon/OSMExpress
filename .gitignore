@@ -14,3 +14,7 @@ a.out
 *.osc.gz
 __pycache__
 /osmx
+*.dylib
+Testing/
+compile_commands.json
+install_manifest.txt
