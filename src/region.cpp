@@ -13,16 +13,18 @@ static inline void rtrim(std::string &s) {
     }).base(), s.end());
 }
 
-
 std::unique_ptr<S2Polygon> S2PolyFromCoordinates(nlohmann::json &coordinates) {
     std::vector<std::unique_ptr<S2Loop>> loopRegions;
     for (auto loop : coordinates) {
         std::vector<S2Point> points;
-        for (auto coord : loop) {
-            double lon = coord[0].get<double>();
-            double lat = coord[1].get<double>();
+
+        // ignore the last repeated point
+        for (int i = 0; i < loop.size() - 1; i++) {
+            double lon = loop[i][0].get<double>();
+            double lat = loop[i][1].get<double>();
             points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
         }
+
         auto loopRegion = std::make_unique<S2Loop>(points);
         loopRegion->Normalize();
         loopRegions.push_back(std::move(loopRegion));
@@ -76,7 +78,10 @@ Region::Region(const std::string &text, const std::string &ext) {
                 iss >> lon;
                 points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
             }
+
         }
+
+        if (points[0] == points[points.size() - 1]) points.pop_back();
 
         auto loop = std::make_unique<S2Loop>(points);
         loop->Normalize();
@@ -96,6 +101,9 @@ Region::Region(const std::string &text, const std::string &ext) {
                 AddS2RegionFromGeometry(feature["geometry"]);
             }
         }
+    } else {
+        std::cerr << "Unknown ext" << std::endl;
+        assert(false);
     }
 }
 

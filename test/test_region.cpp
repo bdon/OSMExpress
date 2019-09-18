@@ -45,7 +45,7 @@ TEST_CASE("geojson polygon") {
     ]
   ]
 })json";
-        Region s{json,"json"};
+        Region s{json,"geojson"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0,0).ToPoint()));
         REQUIRE(!s.Contains(S2LatLng::FromDegrees(2.0,2.0).ToPoint()));
     }
@@ -70,7 +70,7 @@ TEST_CASE("geojson polygon") {
     ]
   ]
 })json";
-        Region s{json,"json"};
+        Region s{json,"geojson"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(1.5,1.5).ToPoint()));
         REQUIRE(!s.Contains(S2LatLng::FromDegrees(0.0,0.0).ToPoint()));
     }
@@ -95,7 +95,7 @@ TEST_CASE("geojson polygon") {
     ]]
   ]
 })json";
-        Region s{json,"json"};
+        Region s{json,"geojson"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0.5,0.5).ToPoint()));
         REQUIRE(s.Contains(S2LatLng::FromDegrees(2.5,2.5).ToPoint()));
     }
