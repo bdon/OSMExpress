@@ -5,9 +5,22 @@
 using namespace std;
 using namespace osmx;
 
+void printHelp() {
+    cout << "Usage: osmx COMMAND [ARG...]" << endl << endl;
+    cout << "COMMANDS:" << endl;
+    cout << " expand   Convert an OSM PBF or XML to an osmx database." << endl;
+    cout << " extract  Create a regional extract PBF from an osmx database." << endl;
+    cout << " update   Apply an OSM changeset to an osmx database." << endl;
+    cout << " query    Look up objects by ID in an osmx database." << endl;
+    exit(1);
+}
+
 int main(int argc, char* argv[]) {
   vector<string> args(argv, argv+argc);
   auto db_cmds = {"stat","node","way","relation"};
+  if (argc < 2) {
+    printHelp();
+  }
   if (args[1] == "expand") {
     cmdExpand(argc,argv);
   } else if (args[1] == "extract") {
@@ -90,11 +103,6 @@ int main(int argc, char* argv[]) {
     mdb_env_sync(env,true);
     mdb_env_close(env);
   } else {
-    cout << "Usage: osmx COMMAND [ARG...]" << endl << endl;
-    cout << "COMMANDS:" << endl;
-    cout << " expand   Convert an OSM PBF or XML to an osmx database." << endl;
-    cout << " extract  Create a regional extract PBF from an osmx database." << endl;
-    cout << " update   Apply an OSM changeset to an osmx database." << endl;
-    cout << " query    Look up objects by ID in an osmx database." << endl;
+    printHelp();
   }
 }
