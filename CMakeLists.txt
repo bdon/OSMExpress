@@ -40,3 +40,5 @@ include_directories(vendor/Catch2/single_include)
 target_link_libraries(osmxTest s2)
 enable_testing()
 add_test(osmxTest osmxTest)
+
+install(TARGETS osmx DESTINATION bin)
