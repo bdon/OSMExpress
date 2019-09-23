@@ -5,6 +5,7 @@ set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "-pthread")
 
+set(OSMX_VERSION "0.0.1")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto EXCLUDE_FROM_ALL)
 set(ROARING_BUILD_STATIC ON)
