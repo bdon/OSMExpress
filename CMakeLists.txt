@@ -4,14 +4,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "-pthread")
-
 set(OSMX_VERSION "0.0.1")
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+set(ROARING_BUILD_STATIC ON CACHE INTERNAL "")
+set(ROARING_LINK_STATIC ON CACHE INTERNAL "")
 
-SET(BUILD_SHARED_LIBS OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/s2geometry EXCLUDE_FROM_ALL)
-set(ROARING_BUILD_STATIC ON)
-set(ROARING_LINK_STATIC ON)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/CRoaring EXCLUDE_FROM_ALL)
 
 add_custom_target(build_lmdb COMMAND make liblmdb.a CC=clang XCFLAGS=-D_WANT_SEMUN
