@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS "-pthread")
 set(OSMX_VERSION "0.0.1")
 
 SET(BUILD_SHARED_LIBS OFF)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/s2geometry EXCLUDE_FROM_ALL)
 set(ROARING_BUILD_STATIC ON)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/CRoaring EXCLUDE_FROM_ALL)
@@ -35,11 +35,10 @@ link_directories(osmx /usr/local/lib)
 endif()
 
 add_executable(osmx src/cmd.cpp src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
-add_dependencies(osmx build_lmdb s2)
+add_dependencies(osmx build_lmdb s2 kj capnp)
 
-target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb/liblmdb.a)
 target_link_libraries(osmx z expat bz2 s2 roaring)
-
+target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb/liblmdb.a)
 target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/capnp/libcapnp.a)
 target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/kj/libkj.a)
 
