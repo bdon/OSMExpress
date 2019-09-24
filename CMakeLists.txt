@@ -52,3 +52,5 @@ enable_testing()
 add_test(osmxTest osmxTest)
 
 install(TARGETS osmx DESTINATION bin)
+add_custom_target(archive COMMAND dist/archive.sh ${OSMX_VERSION} ${CMAKE_SYSTEM_NAME})
+add_dependencies(archive osmx)
