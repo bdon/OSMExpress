@@ -35,19 +35,16 @@ try:
   latest = s.get_state_info().sequence
   print("Latest is {0}".format(latest))
 
-  def apply_changes(start_id):
-   current_id = start_id
-   while current_id < latest:
-     fd, path = tempfile.mkstemp(suffix='.osc.gz')
-     with open(fd,'wb') as f:
-       f.write(s.get_diff_block(current_id))
-     info = s.get_state_info(current_id)
-     timestamp = info.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
-     subprocess.check_call([osmx,'update',sys.argv[1],path,str(current_id),timestamp,'--commit'])
-     os.unlink(path)
-     current_id = current_id + 1
-
-  apply_changes(seqnum+1)
+  current_id = seqnum
+  while current_id < latest:
+    fd, path = tempfile.mkstemp(suffix='.osc.gz')
+    with open(fd,'wb') as f:
+      f.write(s.get_diff_block(current_id))
+    info = s.get_state_info(current_id)
+    timestamp = info.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
+    subprocess.check_call([osmx,'update',sys.argv[1],path,str(current_id),timestamp,'--commit'])
+    os.unlink(path)
+    current_id = current_id + 1
 
 except BlockingIOError:
   print("Process is running - exiting.")
