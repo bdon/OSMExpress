@@ -36,8 +36,8 @@ try:
   latest = s.get_state_info().sequence
   print("Latest is {0}".format(latest))
 
-  current_id = seqnum
-  while current_id < latest:
+  current_id = seqnum + 1
+  while current_id <= latest:
     fd, path = tempfile.mkstemp(suffix='.osc.gz')
     with open(fd,'wb') as f:
       f.write(s.get_diff_block(current_id))
