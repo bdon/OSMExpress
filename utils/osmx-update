@@ -9,7 +9,8 @@ import fcntl
 
 from server import ReplicationServer
 
-osmx = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/osmx'
+# expects osmx to be on the PATH.
+osmx = 'osmx'
 
 try:
   file = open('/tmp/osmx.lock','w')
