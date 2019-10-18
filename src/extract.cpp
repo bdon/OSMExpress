@@ -173,7 +173,6 @@ void cmdExtract(int argc, char * argv[]) {
     }
   }
 
-  if (!jsonOutput) cout << "Ways: " << way_ids.cardinality() << endl;
 
   // find all Relations that these nodes or Ways are a member of.
   {
@@ -226,6 +225,28 @@ void cmdExtract(int argc, char * argv[]) {
 
   if (!jsonOutput) cout << "Relations: " << relation_ids.cardinality() << endl;
   db::Elements ways(txn,"ways");
+  db::Elements relations(txn,"relations");
+
+  // make it Multipolygon-complete: go through all Relations, finding any that have tag type=multipolygon, and add to Ways
+
+  for (auto relation_id : relation_ids) {
+    auto reader = relations.getReader(relation_id);
+    Relation::Reader relation = reader.getRoot<Relation>();
+    auto tags = relation.getTags();
+    for (int i = 0; i < tags.size() / 2; i++) {
+      if (tags[i*2] == "type" && tags[i*2+1] == "multipolygon") {
+        for (auto const &member : relation.getMembers()) {
+          if (member.getType() == RelationMember::Type::WAY) {
+            auto ref = member.getRef();
+            // check if the way exists, because this may be an extract
+            if (ways.exists(ref)) way_ids.add(member.getRef());
+          }
+        }
+      }
+    }
+  }
+
+  if (!jsonOutput) cout << "Ways: " << way_ids.cardinality() << endl;
 
   // make it Way-complete: go through all Ways and add in any missing Nodes.
 
@@ -315,7 +336,6 @@ void cmdExtract(int argc, char * argv[]) {
     }
 
     {
-      db::Elements relations(txn,"relations");
       for (auto relation_id : relation_ids) {
         section.tick();
         auto reader = relations.getReader(relation_id);
