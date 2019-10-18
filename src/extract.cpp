@@ -265,7 +265,7 @@ void cmdExtract(int argc, char * argv[]) {
   // start Write
 
   osmium::io::Header header;
-  header.set("generator", "osmx 0.0.1");
+  header.set("generator", "osmx 0.0.2");
   header.set("timestamp", timestamp);
   header.set("osmosis_replication_timestamp", timestamp);
   osmium::io::Writer writer{result["output"].as<string>(), header, osmium::io::overwrite::allow};
