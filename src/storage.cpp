@@ -4,11 +4,12 @@ namespace osmx { namespace db {
   
 uint64_t to64(osmium::Location loc) {
   uint64_t x = loc.x();
-  return x << 32 | loc.y();
+  uint64_t y = loc.y();
+  return (x << 32) | (y & 0xFFFFFFFFLL);
 }
 
 osmium::Location toLoc(uint64_t val) {
-  return osmium::Location((int64_t)(val >> 32), (int64_t)(val & 0x00000000ffffffff));
+  return osmium::Location((int64_t)(val >> 32), (int64_t)(val & 0xFFFFFFFFLL));
 }
 
 
