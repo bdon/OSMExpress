@@ -27,6 +27,8 @@ Nodes, ways and relations and their tags or members are directly stored in the d
 
 ## Installation
 
+Binary releases are available at [Releases](https://github.com/protomaps/OSMExpress/releases).
+
 [See the manual for instructions on building from source](https://protomaps.com/docs/osmexpress/programming-guide/). 
 
 ## Usage
