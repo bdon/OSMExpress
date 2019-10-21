@@ -121,3 +121,25 @@ S2CellUnion Region::GetCovering(S2RegionCoverer &coverer) {
     }
     return retval;
 }
+
+S2LatLngRect Region::GetBounds() {
+    auto const &firstRegion = mRegions[0];
+    auto lat_min = firstRegion->GetRectBound().lat_lo();
+    auto lat_max = firstRegion->GetRectBound().lat_hi();
+    auto lng_min = firstRegion->GetRectBound().lng_lo();
+    auto lng_max = firstRegion->GetRectBound().lng_hi();
+
+    for (size_t i = 1; i < mRegions.size(); i++) {
+        auto const &r = mRegions[i];
+        auto lat_lo = r->GetRectBound().lat_lo();
+        auto lat_hi = r->GetRectBound().lat_hi();
+        auto lng_lo = r->GetRectBound().lng_lo();
+        auto lng_hi = r->GetRectBound().lng_hi();
+        if (lat_lo < lat_min) lat_min = lat_lo;
+        if (lat_hi > lat_max) lat_max = lat_hi;
+        if (lng_lo < lng_min) lng_min = lng_lo;
+        if (lng_hi > lng_max) lng_max = lng_hi;
+    }
+
+    return S2LatLngRect(S2LatLng(lat_min,lng_min),S2LatLng(lat_max,lng_max));
+}

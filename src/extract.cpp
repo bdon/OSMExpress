@@ -268,6 +268,10 @@ void cmdExtract(int argc, char * argv[]) {
   header.set("generator", "osmx");
   header.set("timestamp", timestamp);
   header.set("osmosis_replication_timestamp", timestamp);
+
+  auto bounds = region->GetBounds();
+
+  header.add_box(osmium::Box(bounds.lng_lo().degrees(),bounds.lat_lo().degrees(),bounds.lng_hi().degrees(),bounds.lat_hi().degrees()));
   osmium::io::Writer writer{result["output"].as<string>(), header, osmium::io::overwrite::allow};
   osmium::memory::CallbackBuffer cb;
   cb.set_callback([&](osmium::memory::Buffer&& buffer) {

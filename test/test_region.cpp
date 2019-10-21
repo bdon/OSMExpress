@@ -98,6 +98,11 @@ TEST_CASE("geojson polygon") {
         Region s{json,"geojson"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0.5,0.5).ToPoint()));
         REQUIRE(s.Contains(S2LatLng::FromDegrees(2.5,2.5).ToPoint()));
+        auto bounds = s.GetBounds();
+        REQUIRE(bounds.lat_lo().degrees() <= 0.0);
+        REQUIRE(bounds.lat_hi().degrees() >= 3.0);
+        REQUIRE(bounds.lng_lo().degrees() <= 0.0);
+        REQUIRE(bounds.lng_hi().degrees() >= 3.0);
     }
 }
 
