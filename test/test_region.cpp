@@ -104,6 +104,26 @@ TEST_CASE("geojson polygon") {
         REQUIRE(bounds.lng_lo().degrees() <= 0.0);
         REQUIRE(bounds.lng_hi().degrees() >= 3.0);
     }
+
+    SECTION("bounds beyond antimeridian") {
+        string json = R"json({
+  "type": "Polygon",
+  "coordinates": [
+    [
+      [180.0,-1.0],
+      [180.0,1.0],
+      [181.0,1.0],
+      [181.0,-1.0],
+      [180.0,-1.0]
+    ]
+  ]
+})json";
+        Region s{json,"geojson"};
+        auto bounds = s.GetBounds();
+        REQUIRE(bounds.lng_lo().degrees() == 180.0);
+        REQUIRE(bounds.lng_hi().degrees() <= -178.9); // hacky precision
+        REQUIRE(bounds.lng_hi().degrees() >= -179.1);
+    }
 }
 
 // test handle whitespace
@@ -152,7 +172,6 @@ END
         Region s{poly,"poly"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0,0).ToPoint()));
         REQUIRE(!s.Contains(S2LatLng::FromDegrees(2.0,2.0).ToPoint()));
-
     }
 
     SECTION("multiple outer loops") {

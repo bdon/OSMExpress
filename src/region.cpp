@@ -22,7 +22,7 @@ std::unique_ptr<S2Polygon> S2PolyFromCoordinates(nlohmann::json &coordinates) {
         for (int i = 0; i < loop.size() - 1; i++) {
             double lon = loop[i][0].get<double>();
             double lat = loop[i][1].get<double>();
-            points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
+            points.push_back(S2LatLng::FromDegrees(lat,lon).Normalized().ToPoint());
         }
 
         auto loopRegion = std::make_unique<S2Loop>(points);
@@ -48,13 +48,13 @@ Region::Region(const std::string &text, const std::string &ext) {
     if (ext == "bbox") {
         double minLat,minLon,maxLat,maxLon;
         std::sscanf(text.c_str(), "%lf,%lf,%lf,%lf",&minLat,&minLon,&maxLat,&maxLon);
-        auto lo = S2LatLng::FromDegrees(minLat,minLon);
-        auto hi = S2LatLng::FromDegrees(maxLat,maxLon);
+        auto lo = S2LatLng::FromDegrees(minLat,minLon).Normalized();
+        auto hi = S2LatLng::FromDegrees(maxLat,maxLon).Normalized();
         mRegions.push_back(std::make_unique<S2LatLngRect>(lo,hi));
     } else if (ext == "disc") {
         double lat,lon,radius;
         std::sscanf(text.c_str(), "%lf,%lf,%lf",&lat,&lon,&radius);
-        auto center = S2LatLng::FromDegrees(lat,lon);
+        auto center = S2LatLng::FromDegrees(lat,lon).Normalized();
         auto angle = S1Angle::Degrees(radius);
         mRegions.push_back(std::make_unique<S2Cap>(center.ToPoint(),angle));
     } else if (ext == "poly") {
@@ -76,7 +76,7 @@ Region::Region(const std::string &text, const std::string &ext) {
                 std::istringstream iss(line);
                 iss >> lat;
                 iss >> lon;
-                points.push_back(S2LatLng::FromDegrees(lat,lon).ToPoint());
+                points.push_back(S2LatLng::FromDegrees(lat,lon).Normalized().ToPoint());
             }
 
         }
