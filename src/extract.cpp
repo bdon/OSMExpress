@@ -271,7 +271,10 @@ void cmdExtract(int argc, char * argv[]) {
 
   auto bounds = region->GetBounds();
 
-  header.add_box(osmium::Box(bounds.lng_lo().degrees(),bounds.lat_lo().degrees(),bounds.lng_hi().degrees(),bounds.lat_hi().degrees()));
+
+  if (bounds.lng_lo().degrees() < bounds.lng_hi().degrees()) {
+    header.add_box(osmium::Box(bounds.lng_lo().degrees(),bounds.lat_lo().degrees(),bounds.lng_hi().degrees(),bounds.lat_hi().degrees()));
+  }
   osmium::io::Writer writer{result["output"].as<string>(), header, osmium::io::overwrite::allow};
   osmium::memory::CallbackBuffer cb;
   cb.set_callback([&](osmium::memory::Buffer&& buffer) {
