@@ -272,6 +272,10 @@ void cmdExtract(int argc, char * argv[]) {
   auto bounds = region->GetBounds();
 
 
+  // the box header is used by some applications,
+  // for example: zooming to an overview in QGIS.
+  // however, osmium only supports writing one PBF box header and it must be in the -180 to 180 lng, -90 to 90 lat range.
+  // valid input regions can cross the antimeridian, but the output header box is omitted as it can't represent the input.
   if (bounds.lng_lo().degrees() < bounds.lng_hi().degrees()) {
     header.add_box(osmium::Box(bounds.lng_lo().degrees(),bounds.lat_lo().degrees(),bounds.lng_hi().degrees(),bounds.lat_hi().degrees()));
   }
