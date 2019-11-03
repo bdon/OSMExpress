@@ -1,4 +1,7 @@
 cmake_minimum_required (VERSION 3.5)
+set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+project(OSMExpress)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated")
