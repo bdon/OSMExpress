@@ -22,7 +22,7 @@ class ReplicationServer(object):
         self.diff_type = diff_type
 
     def open_url(self, url):
-        return urlrequest.urlopen(url)
+        return urlrequest.urlopen(url,None,10)
 
     def timestamp_to_sequence(self, timestamp, balanced_search=False):
         """ Get the sequence number of the replication file that contains the
