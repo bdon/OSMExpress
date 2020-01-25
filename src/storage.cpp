@@ -178,7 +178,9 @@ void traverseCell(MDB_cursor *cursor,S2CellId cell_id,Roaring64Map &set) {
   MDB_val key, data;
   key.mv_size = sizeof(S2CellId);
   key.mv_data = (void *)&start;
-  CHECK(mdb_cursor_get(cursor,&key,&data,MDB_SET_RANGE));
+
+  // reading past end of db
+  if (mdb_cursor_get(cursor,&key,&data,MDB_SET_RANGE) != 0) return;
   while (*((S2CellId *)key.mv_data) < end) {
     int retval_values = mdb_cursor_get(cursor,&key,&data,MDB_GET_MULTIPLE);
     while (0 == retval_values) {
@@ -188,7 +190,8 @@ void traverseCell(MDB_cursor *cursor,S2CellId cell_id,Roaring64Map &set) {
       }
       retval_values = mdb_cursor_get(cursor,&key,&data,MDB_NEXT_MULTIPLE);
     }
-    mdb_cursor_get(cursor,&key,&data,MDB_NEXT_NODUP);
+    // reached end of db
+    if (mdb_cursor_get(cursor,&key,&data,MDB_NEXT_NODUP) != 0) return;
   }
 }
 
