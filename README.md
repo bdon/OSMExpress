@@ -68,7 +68,7 @@ A Python library with basic object lookup functionality can be installed via:
 
 See [python/README.md](/python/README.md) for a short example of how to read OSM objects, tags and coordinates.
 
-### Docker
+### Docker (experimental)
 
 A `Dockerfile` is provided but users will need to build their own container. To do so, run:
 ```
