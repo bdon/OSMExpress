@@ -68,7 +68,13 @@ A Python library with basic object lookup functionality can be installed via:
 
 See [python/README.md](/python/README.md) for a short example of how to read OSM objects, tags and coordinates.
 
+### Docker
+
+A `Dockerfile` is provided but users will need to build their own container. To do so, run:
+```
+docker build -t osmx .
+```
+
 ## License and Development
 
 2-Clause BSD, see [LICENSE.md](LICENSE.md). Bug reports, pull requests welcome! For support, new features, and integration, contact [hi@protomaps.com](mailto:hi@protomaps.com).
-
