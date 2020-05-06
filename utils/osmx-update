@@ -6,15 +6,11 @@ import tempfile
 import os
 import sys
 import fcntl
-import time
 
 from server import ReplicationServer
 
 # expects osmx to be on the PATH.
 osmx = 'osmx'
-
-# hack: if we assume clocks sync'd, minutely diffs show up within a few seconds
-time.sleep(8) 
 
 try:
   file = open('/tmp/osmx.lock','w')
