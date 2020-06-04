@@ -48,6 +48,12 @@ class DataUpdate : public osmium::handler::Handler {
         ::capnp::MallocMessageBuilder message;
         Node::Builder nodeMsg = message.initRoot<Node>();
         setTags<Node::Builder>(node.tags(),nodeMsg);
+        auto metadata = nodeMsg.initMetadata();
+        metadata.setVersion(node.version());
+        metadata.setTimestamp(node.timestamp());
+        metadata.setChangeset(node.changeset());
+        metadata.setUid(node.uid());
+        metadata.setUser(node.user());
         kj::VectorOutputStream output;
         capnp::writeMessage(output,message);
         mNodes.put(id,output);
@@ -96,6 +102,12 @@ class DataUpdate : public osmium::handler::Handler {
         new_nodes.insert(nodes[i].ref());
       }
       setTags<Way::Builder>(way.tags(),wayMsg);
+      auto metadata = wayMsg.initMetadata();
+      metadata.setVersion(way.version());
+      metadata.setTimestamp(way.timestamp());
+      metadata.setChangeset(way.changeset());
+      metadata.setUid(way.uid());
+      metadata.setUser(way.user());
       kj::VectorOutputStream output;
       capnp::writeMessage(output,message);
       mWays.put(id,output);
@@ -163,6 +175,12 @@ class DataUpdate : public osmium::handler::Handler {
         }
         i++;
       }
+      auto metadata = relationMsg.initMetadata();
+      metadata.setVersion(relation.version());
+      metadata.setTimestamp(relation.timestamp());
+      metadata.setChangeset(relation.changeset());
+      metadata.setUid(relation.uid());
+      metadata.setUser(relation.user());
       kj::VectorOutputStream output;
       capnp::writeMessage(output,message);
       mRelations.put(relation.id(),output);
