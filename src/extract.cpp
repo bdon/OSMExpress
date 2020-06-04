@@ -305,6 +305,13 @@ void cmdExtract(int argc, char * argv[]) {
           if (!nodes_table.exists(node_id)) continue;
           auto reader = nodes_table.getReader(node_id);
           Node::Reader node = reader.getRoot<Node>();
+          auto metadata = node.getMetadata();
+          node_builder.set_version(metadata.getVersion());
+          node_builder.set_timestamp(metadata.getTimestamp());
+          node_builder.set_changeset(metadata.getChangeset());
+          node_builder.set_user(metadata.getUser());
+          node_builder.set_uid(metadata.getUid());
+
           auto tags = node.getTags();
           osmium::builder::TagListBuilder tag_builder{node_builder};
           for (int i = 0; i < tags.size() / 2; i++) {
@@ -327,6 +334,12 @@ void cmdExtract(int argc, char * argv[]) {
           using namespace osmium::builder::attr; 
           osmium::builder::WayBuilder way_builder{cb.buffer()};
           way_builder.set_id(way_id);
+          auto metadata = way.getMetadata();
+          way_builder.set_version(metadata.getVersion());
+          way_builder.set_timestamp(metadata.getTimestamp());
+          way_builder.set_changeset(metadata.getChangeset());
+          way_builder.set_user(metadata.getUser());
+          way_builder.set_uid(metadata.getUid());
 
           {
             osmium::builder::WayNodeListBuilder way_node_list_builder{way_builder};
@@ -356,6 +369,13 @@ void cmdExtract(int argc, char * argv[]) {
           using namespace osmium::builder::attr; 
           osmium::builder::RelationBuilder relation_builder{cb.buffer()};
           relation_builder.set_id(relation_id);
+
+          auto metadata = relation.getMetadata();
+          relation_builder.set_version(metadata.getVersion());
+          relation_builder.set_timestamp(metadata.getTimestamp());
+          relation_builder.set_changeset(metadata.getChangeset());
+          relation_builder.set_user(metadata.getUser());
+          relation_builder.set_uid(metadata.getUid());
 
           {
             osmium::builder::RelationMemberListBuilder relation_member_list_builder{relation_builder};

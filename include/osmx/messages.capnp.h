@@ -14,6 +14,7 @@
 namespace capnp {
 namespace schemas {
 
+CAPNP_DECLARE_SCHEMA(d67cff4a3d9aacf7);
 CAPNP_DECLARE_SCHEMA(b93919c4ec449690);
 CAPNP_DECLARE_SCHEMA(cb94e7d0d750b6b5);
 CAPNP_DECLARE_SCHEMA(c4cbcf7bbc35ff81);
@@ -30,6 +31,21 @@ CAPNP_DECLARE_SCHEMA(cd53a3c262087d04);
 }  // namespace capnp
 
 
+struct Metadata {
+  Metadata() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(d67cff4a3d9aacf7, 3, 1)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
 struct Node {
   Node() = delete;
 
@@ -38,7 +54,7 @@ struct Node {
   class Pipeline;
 
   struct _capnpPrivate {
-    CAPNP_DECLARE_STRUCT_HEADER(b93919c4ec449690, 0, 1)
+    CAPNP_DECLARE_STRUCT_HEADER(b93919c4ec449690, 0, 2)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -53,7 +69,7 @@ struct Way {
   class Pipeline;
 
   struct _capnpPrivate {
-    CAPNP_DECLARE_STRUCT_HEADER(cb94e7d0d750b6b5, 0, 2)
+    CAPNP_DECLARE_STRUCT_HEADER(cb94e7d0d750b6b5, 0, 3)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -85,7 +101,7 @@ struct Relation {
   class Pipeline;
 
   struct _capnpPrivate {
-    CAPNP_DECLARE_STRUCT_HEADER(cd53a3c262087d04, 0, 2)
+    CAPNP_DECLARE_STRUCT_HEADER(cd53a3c262087d04, 0, 3)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -93,6 +109,107 @@ struct Relation {
 };
 
 // =======================================================================================
+
+class Metadata::Reader {
+public:
+  typedef Metadata Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline  ::uint32_t getVersion() const;
+
+  inline  ::uint64_t getTimestamp() const;
+
+  inline  ::uint32_t getChangeset() const;
+
+  inline  ::uint32_t getUid() const;
+
+  inline bool hasUser() const;
+  inline  ::capnp::Text::Reader getUser() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class Metadata::Builder {
+public:
+  typedef Metadata Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline  ::uint32_t getVersion();
+  inline void setVersion( ::uint32_t value);
+
+  inline  ::uint64_t getTimestamp();
+  inline void setTimestamp( ::uint64_t value);
+
+  inline  ::uint32_t getChangeset();
+  inline void setChangeset( ::uint32_t value);
+
+  inline  ::uint32_t getUid();
+  inline void setUid( ::uint32_t value);
+
+  inline bool hasUser();
+  inline  ::capnp::Text::Builder getUser();
+  inline void setUser( ::capnp::Text::Reader value);
+  inline  ::capnp::Text::Builder initUser(unsigned int size);
+  inline void adoptUser(::capnp::Orphan< ::capnp::Text>&& value);
+  inline ::capnp::Orphan< ::capnp::Text> disownUser();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class Metadata::Pipeline {
+public:
+  typedef Metadata Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
 
 class Node::Reader {
 public:
@@ -113,6 +230,9 @@ public:
 
   inline bool hasTags() const;
   inline  ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>::Reader getTags() const;
+
+  inline bool hasMetadata() const;
+  inline  ::Metadata::Reader getMetadata() const;
 
 private:
   ::capnp::_::StructReader _reader;
@@ -150,6 +270,13 @@ public:
   inline void adoptTags(::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>>&& value);
   inline ::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>> disownTags();
 
+  inline bool hasMetadata();
+  inline  ::Metadata::Builder getMetadata();
+  inline void setMetadata( ::Metadata::Reader value);
+  inline  ::Metadata::Builder initMetadata();
+  inline void adoptMetadata(::capnp::Orphan< ::Metadata>&& value);
+  inline ::capnp::Orphan< ::Metadata> disownMetadata();
+
 private:
   ::capnp::_::StructBuilder _builder;
   template <typename, ::capnp::Kind>
@@ -168,6 +295,7 @@ public:
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
       : _typeless(kj::mv(typeless)) {}
 
+  inline  ::Metadata::Pipeline getMetadata();
 private:
   ::capnp::AnyPointer::Pipeline _typeless;
   friend class ::capnp::PipelineHook;
@@ -198,6 +326,9 @@ public:
 
   inline bool hasTags() const;
   inline  ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>::Reader getTags() const;
+
+  inline bool hasMetadata() const;
+  inline  ::Metadata::Reader getMetadata() const;
 
 private:
   ::capnp::_::StructReader _reader;
@@ -243,6 +374,13 @@ public:
   inline void adoptTags(::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>>&& value);
   inline ::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>> disownTags();
 
+  inline bool hasMetadata();
+  inline  ::Metadata::Builder getMetadata();
+  inline void setMetadata( ::Metadata::Reader value);
+  inline  ::Metadata::Builder initMetadata();
+  inline void adoptMetadata(::capnp::Orphan< ::Metadata>&& value);
+  inline ::capnp::Orphan< ::Metadata> disownMetadata();
+
 private:
   ::capnp::_::StructBuilder _builder;
   template <typename, ::capnp::Kind>
@@ -261,6 +399,7 @@ public:
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
       : _typeless(kj::mv(typeless)) {}
 
+  inline  ::Metadata::Pipeline getMetadata();
 private:
   ::capnp::AnyPointer::Pipeline _typeless;
   friend class ::capnp::PipelineHook;
@@ -383,6 +522,9 @@ public:
   inline bool hasMembers() const;
   inline  ::capnp::List< ::RelationMember,  ::capnp::Kind::STRUCT>::Reader getMembers() const;
 
+  inline bool hasMetadata() const;
+  inline  ::Metadata::Reader getMetadata() const;
+
 private:
   ::capnp::_::StructReader _reader;
   template <typename, ::capnp::Kind>
@@ -426,6 +568,13 @@ public:
   inline void adoptMembers(::capnp::Orphan< ::capnp::List< ::RelationMember,  ::capnp::Kind::STRUCT>>&& value);
   inline ::capnp::Orphan< ::capnp::List< ::RelationMember,  ::capnp::Kind::STRUCT>> disownMembers();
 
+  inline bool hasMetadata();
+  inline  ::Metadata::Builder getMetadata();
+  inline void setMetadata( ::Metadata::Reader value);
+  inline  ::Metadata::Builder initMetadata();
+  inline void adoptMetadata(::capnp::Orphan< ::Metadata>&& value);
+  inline ::capnp::Orphan< ::Metadata> disownMetadata();
+
 private:
   ::capnp::_::StructBuilder _builder;
   template <typename, ::capnp::Kind>
@@ -444,6 +593,7 @@ public:
   inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
       : _typeless(kj::mv(typeless)) {}
 
+  inline  ::Metadata::Pipeline getMetadata();
 private:
   ::capnp::AnyPointer::Pipeline _typeless;
   friend class ::capnp::PipelineHook;
@@ -453,6 +603,96 @@ private:
 #endif  // !CAPNP_LITE
 
 // =======================================================================================
+
+inline  ::uint32_t Metadata::Reader::getVersion() const {
+  return _reader.getDataField< ::uint32_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+
+inline  ::uint32_t Metadata::Builder::getVersion() {
+  return _builder.getDataField< ::uint32_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+inline void Metadata::Builder::setVersion( ::uint32_t value) {
+  _builder.setDataField< ::uint32_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
+}
+
+inline  ::uint64_t Metadata::Reader::getTimestamp() const {
+  return _reader.getDataField< ::uint64_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+
+inline  ::uint64_t Metadata::Builder::getTimestamp() {
+  return _builder.getDataField< ::uint64_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+inline void Metadata::Builder::setTimestamp( ::uint64_t value) {
+  _builder.setDataField< ::uint64_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS, value);
+}
+
+inline  ::uint32_t Metadata::Reader::getChangeset() const {
+  return _reader.getDataField< ::uint32_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+
+inline  ::uint32_t Metadata::Builder::getChangeset() {
+  return _builder.getDataField< ::uint32_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+inline void Metadata::Builder::setChangeset( ::uint32_t value) {
+  _builder.setDataField< ::uint32_t>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS, value);
+}
+
+inline  ::uint32_t Metadata::Reader::getUid() const {
+  return _reader.getDataField< ::uint32_t>(
+      ::capnp::bounded<4>() * ::capnp::ELEMENTS);
+}
+
+inline  ::uint32_t Metadata::Builder::getUid() {
+  return _builder.getDataField< ::uint32_t>(
+      ::capnp::bounded<4>() * ::capnp::ELEMENTS);
+}
+inline void Metadata::Builder::setUid( ::uint32_t value) {
+  _builder.setDataField< ::uint32_t>(
+      ::capnp::bounded<4>() * ::capnp::ELEMENTS, value);
+}
+
+inline bool Metadata::Reader::hasUser() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool Metadata::Builder::hasUser() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::Text::Reader Metadata::Reader::getUser() const {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::Text::Builder Metadata::Builder::getUser() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void Metadata::Builder::setUser( ::capnp::Text::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::Text::Builder Metadata::Builder::initUser(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void Metadata::Builder::adoptUser(
+    ::capnp::Orphan< ::capnp::Text>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::Text>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::Text> Metadata::Builder::disownUser() {
+  return ::capnp::_::PointerHelpers< ::capnp::Text>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
 
 inline bool Node::Reader::hasTags() const {
   return !_reader.getPointerField(
@@ -490,6 +730,45 @@ inline void Node::Builder::adoptTags(
 inline ::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>> Node::Builder::disownTags() {
   return ::capnp::_::PointerHelpers< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>>::disown(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline bool Node::Reader::hasMetadata() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline bool Node::Builder::hasMetadata() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline  ::Metadata::Reader Node::Reader::getMetadata() const {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline  ::Metadata::Builder Node::Builder::getMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::Metadata::Pipeline Node::Pipeline::getMetadata() {
+  return  ::Metadata::Pipeline(_typeless.getPointerField(1));
+}
+#endif  // !CAPNP_LITE
+inline void Node::Builder::setMetadata( ::Metadata::Reader value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::set(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), value);
+}
+inline  ::Metadata::Builder Node::Builder::initMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::init(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline void Node::Builder::adoptMetadata(
+    ::capnp::Orphan< ::Metadata>&& value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::adopt(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::Metadata> Node::Builder::disownMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::disown(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
 }
 
 inline bool Way::Reader::hasNodes() const {
@@ -566,6 +845,45 @@ inline void Way::Builder::adoptTags(
 inline ::capnp::Orphan< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>> Way::Builder::disownTags() {
   return ::capnp::_::PointerHelpers< ::capnp::List< ::capnp::Text,  ::capnp::Kind::BLOB>>::disown(_builder.getPointerField(
       ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+
+inline bool Way::Reader::hasMetadata() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline bool Way::Builder::hasMetadata() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline  ::Metadata::Reader Way::Reader::getMetadata() const {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline  ::Metadata::Builder Way::Builder::getMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::Metadata::Pipeline Way::Pipeline::getMetadata() {
+  return  ::Metadata::Pipeline(_typeless.getPointerField(2));
+}
+#endif  // !CAPNP_LITE
+inline void Way::Builder::setMetadata( ::Metadata::Reader value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::set(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), value);
+}
+inline  ::Metadata::Builder Way::Builder::initMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::init(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline void Way::Builder::adoptMetadata(
+    ::capnp::Orphan< ::Metadata>&& value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::adopt(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::Metadata> Way::Builder::disownMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::disown(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
 }
 
 inline  ::uint64_t RelationMember::Reader::getRef() const {
@@ -700,6 +1018,45 @@ inline void Relation::Builder::adoptMembers(
 inline ::capnp::Orphan< ::capnp::List< ::RelationMember,  ::capnp::Kind::STRUCT>> Relation::Builder::disownMembers() {
   return ::capnp::_::PointerHelpers< ::capnp::List< ::RelationMember,  ::capnp::Kind::STRUCT>>::disown(_builder.getPointerField(
       ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+
+inline bool Relation::Reader::hasMetadata() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline bool Relation::Builder::hasMetadata() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline  ::Metadata::Reader Relation::Reader::getMetadata() const {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline  ::Metadata::Builder Relation::Builder::getMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::get(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::Metadata::Pipeline Relation::Pipeline::getMetadata() {
+  return  ::Metadata::Pipeline(_typeless.getPointerField(2));
+}
+#endif  // !CAPNP_LITE
+inline void Relation::Builder::setMetadata( ::Metadata::Reader value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::set(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), value);
+}
+inline  ::Metadata::Builder Relation::Builder::initMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::init(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline void Relation::Builder::adoptMetadata(
+    ::capnp::Orphan< ::Metadata>&& value) {
+  ::capnp::_::PointerHelpers< ::Metadata>::adopt(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::Metadata> Relation::Builder::disownMetadata() {
+  return ::capnp::_::PointerHelpers< ::Metadata>::disown(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
 }
 
 
