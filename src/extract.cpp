@@ -70,6 +70,7 @@ void cmdExtract(int argc, char * argv[]) {
   cxxopts::Options cmd_options("Extract", "Create an .osm.pbf from an .osmx file.");
   cmd_options.add_options()
     ("v,verbose", "Verbose output")
+    ("noUserData", "Don't include changeset,uid,user fields (GDPR compliance)")
     ("jsonOutput", "JSON progress output")
     ("cmd", "Command to run", cxxopts::value<string>())
     ("osmx", "Input .osmx", cxxopts::value<string>())
@@ -104,6 +105,8 @@ void cmdExtract(int argc, char * argv[]) {
 
   bool jsonOutput = result.count("jsonOutput") > 0;
   if (jsonOutput) prog.print();
+
+  bool includeUserData = result.count("noUserData") == 0;
 
   std::unique_ptr<Region> region;
   if (result.count("bbox")) region = std::make_unique<Region>(result["bbox"].as<string>(),"bbox");
@@ -308,9 +311,11 @@ void cmdExtract(int argc, char * argv[]) {
           auto metadata = node.getMetadata();
           node_builder.set_version(metadata.getVersion());
           node_builder.set_timestamp(metadata.getTimestamp());
-          node_builder.set_changeset(metadata.getChangeset());
-          node_builder.set_user(metadata.getUser());
-          node_builder.set_uid(metadata.getUid());
+          if (includeUserData) {
+            node_builder.set_changeset(metadata.getChangeset());
+            node_builder.set_user(metadata.getUser());
+            node_builder.set_uid(metadata.getUid());
+          }
 
           auto tags = node.getTags();
           osmium::builder::TagListBuilder tag_builder{node_builder};
@@ -337,9 +342,11 @@ void cmdExtract(int argc, char * argv[]) {
           auto metadata = way.getMetadata();
           way_builder.set_version(metadata.getVersion());
           way_builder.set_timestamp(metadata.getTimestamp());
-          way_builder.set_changeset(metadata.getChangeset());
-          way_builder.set_user(metadata.getUser());
-          way_builder.set_uid(metadata.getUid());
+          if (includeUserData) {
+            way_builder.set_changeset(metadata.getChangeset());
+            way_builder.set_user(metadata.getUser());
+            way_builder.set_uid(metadata.getUid());
+          }
 
           {
             osmium::builder::WayNodeListBuilder way_node_list_builder{way_builder};
@@ -373,9 +380,11 @@ void cmdExtract(int argc, char * argv[]) {
           auto metadata = relation.getMetadata();
           relation_builder.set_version(metadata.getVersion());
           relation_builder.set_timestamp(metadata.getTimestamp());
-          relation_builder.set_changeset(metadata.getChangeset());
-          relation_builder.set_user(metadata.getUser());
-          relation_builder.set_uid(metadata.getUid());
+          if (includeUserData) {
+            relation_builder.set_changeset(metadata.getChangeset());
+            relation_builder.set_user(metadata.getUser());
+            relation_builder.set_uid(metadata.getUid());
+          }
 
           {
             osmium::builder::RelationMemberListBuilder relation_member_list_builder{relation_builder};
