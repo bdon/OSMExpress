@@ -77,4 +77,4 @@ docker build -t osmx .
 
 ## License and Development
 
-2-Clause BSD, see [LICENSE.md](LICENSE.md). Bug reports, pull requests welcome! For support, new features, and integration, contact [hi@protomaps.com](mailto:hi@protomaps.com).
+2-Clause BSD, see [LICENSE.md](LICENSE.md). Bug reports, pull requests welcome! For support, new features, and integration, contact [brandon@protomaps.com](mailto:brandon@protomaps.com).
