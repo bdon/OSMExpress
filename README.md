@@ -6,7 +6,7 @@
 
 OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools.
 
-* **Random access:** Look up nodes, ways and relations by ID; fetch member nodes to construct geometries.
+* **Random access:** Look up nodes, ways and relations and their metadata by ID; fetch member elements to construct geometries.
 * **Spatial indexing:** Nodes are bucketed into [S2 Geometry](http://s2geometry.io) cells. Access a region by providing a cell covering; works for nonrectangular regions.
 * **Scalable:** OSM Express works the same way for OSM data of any size, from a small city to the entire planet. The entire planet can be worked with efficiently on typical hardware such as a laptop computer.
 * **In-place updates:** Included are scripts to download minutely changesets from [planet.openstreetmap.org](https://planet.openstreetmap.org) and apply them to an .osmx database.
@@ -22,8 +22,6 @@ OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-
 * [Cap'n Proto](https://capnproto.org) for in-memory and on-disk representation of OSM elements.
 * [CRoaring](https://roaringbitmap.org) for in-memory representation of ID sets as compressed bitmaps.
 * [S2 Geometry](http://s2geometry.io) for indexing of geographic coordinates.
-
-Nodes, ways and relations and their tags or members are directly stored in the database, but no object versions, username information or timestamps are saved. 
 
 ## Installation
 
@@ -44,6 +42,8 @@ osmx update planet.osmx 3648548.osc 3648548 2019-08-29T17:50:02Z --commit # appl
 osmx query planet.osmx # Print statistics, seqnum and timestamp.
 osmx query planet.osmx way 34633854 # look up an element by ID.
 ```
+
+`osmx extract` has a flag `--noUserData` intended for public facing instances which will remove the user, uid and changeset fields to comply with [GDPR guidelines](https://wiki.openstreetmap.org/wiki/GDPR).
 
 Detailed command line usage can be found in the [Manual](https://protomaps.com/docs/osmexpress).
 
