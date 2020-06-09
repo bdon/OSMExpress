@@ -6,15 +6,15 @@ if len(sys.argv) <= 1:
     exit(1)
 
 env  = osmx.Environment(sys.argv[1])
-txn = osmx.Transaction(env)
-locations = osmx.Locations(txn)
-nodes = osmx.Nodes(txn)
-ways = osmx.Ways(txn)
+with osmx.Transaction(env) as txn:
+    locations = osmx.Locations(txn)
+    nodes = osmx.Nodes(txn)
+    ways = osmx.Ways(txn)
 
-way = ways.get(sys.argv[2])
+    way = ways.get(sys.argv[2])
 
-for node_id in way.nodes:
-    print(locations.get(node_id))
+    for node_id in way.nodes:
+        print(locations.get(node_id))
 
-print(osmx.tag_dict(way.tags))
-print(way.metadata)
+    print(osmx.tag_dict(way.tags))
+    print(way.metadata)

@@ -20,7 +20,14 @@ class Environment:
 class Transaction:
     def __init__(self,env):
         self.env = env
-        self._handle = self.env._handle.begin(buffers=True)
+        self._handle = lmdb.Transaction(self.env._handle, buffers=True)
+
+    def __enter__(self,*args,**kwargs):
+        self._handle.__enter__(*args,**kwargs)
+        return self
+
+    def __exit__(self,*args,**kwargs):
+        self._handle.__exit__(*args,**kwargs)
 
 class Table:
     def __init__(self,txn,name):
