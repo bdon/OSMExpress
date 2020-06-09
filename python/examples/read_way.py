@@ -1,6 +1,10 @@
 import sys
 import osmx
 
+if len(sys.argv) <= 1:
+    print("Usage: read_way.py OSMX_FILE WAY_ID")
+    exit(1)
+
 env  = osmx.Environment(sys.argv[1])
 txn = osmx.Transaction(env)
 locations = osmx.Locations(txn)
@@ -13,3 +17,4 @@ for node_id in way.nodes:
     print(locations.get(node_id))
 
 print(osmx.tag_dict(way.tags))
+print(way.metadata)
