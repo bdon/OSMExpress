@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
       if (args[3] == "node") {
         auto id = stol(args[4]);
         auto location = db::Locations(txn).get(id);
-        cout << location << endl;
+        cout << location.coords << endl;
         auto tags = db::Elements(txn,"nodes").getReader(id).getRoot<Node>().getTags();
         for (int i = 0; i < tags.size() / 2; i++) {
           cout << tags[i*2].cStr() << "=" << tags[i*2+1].cStr() << "\n";

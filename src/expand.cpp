@@ -147,7 +147,7 @@ class Handler: public osmium::handler::Handler {
   }
 
   void node(const osmium::Node& node) {
-    mLocations.put(node.id(), node.location(),MDB_APPEND);
+    mLocations.put(node.id(), db::Location{node.location(),(int32_t)node.version()},MDB_APPEND);
     auto loc = node.location();
     auto ll = S2LatLng::FromDegrees(loc.lat(),loc.lon());
     auto cell = S2CellId(ll).parent(CELL_INDEX_LEVEL);

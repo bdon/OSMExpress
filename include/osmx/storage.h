@@ -47,13 +47,31 @@ class Elements : public Noncopyable {
   MDB_dbi mDbi;
 };
 
+class Location {
+  public:
+  Location() { };
+  Location(osmium::Location l, int32_t v) : coords(l), version(v) {
+
+  }
+
+  bool is_undefined() {
+    return coords.is_undefined();
+  }
+
+  bool is_defined() {
+    return coords.is_defined();
+  }
+  osmium::Location coords;
+  int32_t version;
+};
+
 class Locations : public Noncopyable {
   public:
   Locations(MDB_txn *txn);
-  void put(uint64_t id, const osmium::Location value, int flags = 0);
+  void put(uint64_t id, const Location value, int flags = 0);
   void del(uint64_t id);
   bool exists(uint64_t id);
-  osmium::Location get(uint64_t id) const;
+  Location get(uint64_t id) const;
 
   private:
   MDB_txn* mTxn;

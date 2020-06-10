@@ -303,13 +303,13 @@ void cmdExtract(int argc, char * argv[]) {
           using namespace osmium::builder::attr; 
           osmium::builder::NodeBuilder node_builder{cb.buffer()};
           node_builder.set_id(node_id);
-          node_builder.set_location(loc);
+          node_builder.set_location(loc.coords);
+          node_builder.set_version(loc.version);
 
           if (!nodes_table.exists(node_id)) continue;
           auto reader = nodes_table.getReader(node_id);
           Node::Reader node = reader.getRoot<Node>();
           auto metadata = node.getMetadata();
-          node_builder.set_version(metadata.getVersion());
           node_builder.set_timestamp(metadata.getTimestamp());
           if (includeUserData) {
             node_builder.set_changeset(metadata.getChangeset());

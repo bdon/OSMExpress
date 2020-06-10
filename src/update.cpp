@@ -32,10 +32,10 @@ class DataUpdate : public osmium::handler::Handler {
   // update location, node, cell_location tables
   void node(const osmium::Node& node) {
     uint64_t id = node.id();
-    osmium::Location prev_location = mLocations.get(id);
-    osmium::Location new_location = node.location();
+    db::Location prev_location = mLocations.get(id);
+    db::Location new_location = db::Location{node.location(),(int32_t)node.version()};
     uint64_t prev_cell;
-    if (prev_location.is_defined()) prev_cell = S2CellId(S2LatLng::FromDegrees(prev_location.lat(),prev_location.lon())).parent(CELL_INDEX_LEVEL).id();
+    if (prev_location.is_defined()) prev_cell = S2CellId(S2LatLng::FromDegrees(prev_location.coords.lat(),prev_location.coords.lon())).parent(CELL_INDEX_LEVEL).id();
 
     if (!node.visible()) {
       mLocations.del(id);
@@ -62,7 +62,7 @@ class DataUpdate : public osmium::handler::Handler {
       }
     }
 
-    uint64_t new_cell = S2CellId(S2LatLng::FromDegrees(new_location.lat(),new_location.lon())).parent(CELL_INDEX_LEVEL).id();
+    uint64_t new_cell = S2CellId(S2LatLng::FromDegrees(new_location.coords.lat(),new_location.coords.lon())).parent(CELL_INDEX_LEVEL).id();
     if (!prev_location.is_defined()) {
       mCellNode.put(new_cell,id);
       return;

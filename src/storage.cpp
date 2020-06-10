@@ -1,16 +1,6 @@
 #include "osmx/storage.h"
 
 namespace osmx { namespace db {
-  
-uint64_t to64(osmium::Location loc) {
-  uint64_t x = loc.x();
-  uint64_t y = loc.y();
-  return (x << 32) | (y & 0xFFFFFFFFLL);
-}
-
-osmium::Location toLoc(uint64_t val) {
-  return osmium::Location((int64_t)(val >> 32), (int64_t)(val & 0xFFFFFFFFLL));
-}
 
 
 MDB_env *createEnv(std::string path, bool writable) {
@@ -90,13 +80,18 @@ Locations::Locations(MDB_txn *txn) : mTxn(txn) {
     CHECK(mdb_dbi_open(mTxn, "locations", MDB_INTEGERKEY | MDB_CREATE, &mDbi));
 }
 
-void Locations::put(uint64_t id, const osmium::Location value, int flags) {
+void Locations::put(uint64_t id, const Location value, int flags) {
   MDB_val key, data;
   key.mv_size = sizeof(uint64_t);
   key.mv_data = (void *)&id;
-  uint64_t as64 = to64(value);
-  data.mv_size = sizeof(uint64_t);
-  data.mv_data = (void *)&as64;
+
+  int32_t buf[3];
+  buf[0] = value.coords.x();
+  buf[1] = value.coords.y();
+  buf[2] = value.version;
+
+  data.mv_size = sizeof(uint32_t) * 3;
+  data.mv_data = (void *)&buf;
   CHECK(mdb_put(mTxn, mDbi, &key, &data, flags));
 }
 
@@ -107,15 +102,15 @@ void Locations::del(uint64_t id) {
   mdb_del(mTxn,mDbi,&key,&data);
 }
 
-osmium::Location Locations::get(uint64_t id) const {
+Location Locations::get(uint64_t id) const {
   MDB_val key, data;
   key.mv_size = sizeof(uint64_t);
   key.mv_data = (void *)&id;
   int retval = mdb_get(mTxn, mDbi, &key, &data);
-  if (retval == MDB_NOTFOUND) return osmium::Location{};
+  if (retval == MDB_NOTFOUND) return Location{};
   CHECK(retval);
-  osmium::Location v = toLoc(*((uint64_t *)data.mv_data));
-  return v;
+  int32_t *buf = (int32_t *)data.mv_data;
+  return Location{osmium::Location(buf[0],buf[1]),buf[2]};
 }
 
 bool Locations::exists(uint64_t id) {
