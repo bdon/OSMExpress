@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requirements = [
-    'lmdb~=0.97',
+    'lmdb~=0.98',
     'pycapnp~=0.6.4',
 ]
 
