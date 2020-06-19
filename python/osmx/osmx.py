@@ -47,7 +47,8 @@ class Locations(Table):
             return None
         return (
             int.from_bytes(msg[4:8],byteorder=sys.byteorder,signed=True) / 10000000,
-            int.from_bytes(msg[0:4],byteorder=sys.byteorder,signed=True) / 10000000
+            int.from_bytes(msg[0:4],byteorder=sys.byteorder,signed=True) / 10000000,
+            int.from_bytes(msg[8:12],byteorder=sys.byteorder,signed=False)
             )
 
 class Nodes(Table):
