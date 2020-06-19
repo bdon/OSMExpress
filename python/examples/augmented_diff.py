@@ -177,14 +177,12 @@ with osmx.Transaction(env) as txn:
                         nd = ET.SubElement(mem,'nd')
                         nd.set('lon',ll[0])
                         nd.set('lat',ll[1])
-                        nd.set('ref',child.get('ref'))
             else:
                 for node_id in ways.get(ref).nodes:
                     ll = get_lat_lon(str(node_id),use_new)
                     nd = ET.SubElement(mem,'nd')
                     nd.set('lon',ll[0])
                     nd.set('lat',ll[1])
-                    nd.set('ref',str(node_id))
         elif mem.get('type') == 'node':
             ll = get_lat_lon(mem.get('ref'),use_new)
             mem.set('lon',ll[0])
