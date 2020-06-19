@@ -10,11 +10,14 @@ with osmx.Transaction(env) as txn:
     locations = osmx.Locations(txn)
     nodes = osmx.Nodes(txn)
     ways = osmx.Ways(txn)
+    way_relation = osmx.WayRelation(txn)
 
-    way = ways.get(sys.argv[2])
+    way_id = sys.argv[2]
+    way = ways.get(way_id)
 
     for node_id in way.nodes:
         print(locations.get(node_id))
 
     print(osmx.tag_dict(way.tags))
     print(way.metadata)
+    print(way_relation.get(way_id))
