@@ -97,7 +97,7 @@ with osmx.Transaction(env) as txn:
 
     o = ET.Element('osm')
     o.set("version","0.6")
-    o.set("generator","osmexpress python augmented_diff")
+    o.set("generator","Overpass API not used, but achavi detects it at the start of string; OSMExpress/python/examples/augmented_diff.py")
     note = ET.SubElement(o,'note')
     note.text = "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
 
