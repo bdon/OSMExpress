@@ -60,43 +60,6 @@ with osmx.Transaction(env) as txn:
     ways = osmx.Ways(txn)
     relations = osmx.Relations(txn)
 
-    def get_lat_lon(ref):
-        if 'node/' + ref in actions:
-            node = actions['node/' + ref]
-            return (node.element.get('lon'),node.element.get('lat'))
-        else:
-            ll = locations.get(ref)
-            return (str(ll[0]),str(ll[1]))
-
-    def augment_nd(nd):
-        ll = get_lat_lon(nd.get('ref'))
-        nd.set('lon',ll[0])
-        nd.set('lat',ll[1])
-
-    def augment_member(mem):
-        if mem.get('type') == 'way':
-            ref = mem.get('ref')
-            if 'way/' + ref in actions:
-                way = actions['way/' + ref]
-                for child in way.element:
-                    if child.tag == 'nd':
-                        ll = get_lat_lon(child.get('ref'))
-                        nd = ET.SubElement(mem,'nd')
-                        nd.set('lon',ll[0])
-                        nd.set('lat',ll[1])
-                        nd.set('ref',child.get('ref'))
-            else:
-                for node_id in ways.get(ref).nodes:
-                    ll = get_lat_lon(str(node_id))
-                    nd = ET.SubElement(mem,'nd')
-                    nd.set('lon',ll[0])
-                    nd.set('lat',ll[1])
-                    nd.set('ref',str(node_id))
-        elif mem.get('type') == 'node':
-            ll = get_lat_lon(mem.get('ref'))
-            mem.set('lon',ll[0])
-            mem.set('lat',ll[1])
-
     def set_old_metadata(elem):
         elem_id = int(elem.get('id'))
         if elem.tag == 'node':
@@ -123,17 +86,7 @@ with osmx.Transaction(env) as txn:
             elem.set('timestamp','?')
             elem.set('changeset','?')
 
-
-    for action in action_list:
-        if action.element.tag == 'way':
-            for child in action.element:
-                if child.tag == 'nd':
-                    augment_nd(child)
-        if action.element.tag == 'relation':
-            for child in action.element:
-                if child.tag == 'member':
-                    augment_member(child)
-
+    # Create a list of actions
 
     o = ET.Element('osm')
     o.set("version","0.6")
@@ -160,8 +113,67 @@ with osmx.Transaction(env) as txn:
             # TODO the Geofabrik deleted elements seem to have the old metadata and old version numbers
             # check if this is true of planet replication files
             new.append(modified)
-    # if action.type == 'modify':
-    #     pass
+        else:
+            # action.type == 'modify'
+            pass
+            modified = copy.deepcopy(action.element)
+
+    # Augment the created "old" and "new" elements
+
+    def get_lat_lon(ref, use_new):
+        if use_new and ('node/' + ref in actions):
+            node = actions['node/' + ref]
+            return (node.element.get('lon'),node.element.get('lat'))
+        else:
+            ll = locations.get(ref)
+            return (str(ll[0]),str(ll[1]))
+
+    def augment_nd(nd,use_new):
+        ll = get_lat_lon(nd.get('ref'),use_new)
+        nd.set('lon',ll[0])
+        nd.set('lat',ll[1])
+
+    def augment_member(mem,use_new):
+        if mem.get('type') == 'way':
+            ref = mem.get('ref')
+            if use_new and ('way/' + ref in actions):
+                way = actions['way/' + ref]
+                for child in way.element:
+                    if child.tag == 'nd':
+                        ll = get_lat_lon(child.get('ref'),use_new)
+                        nd = ET.SubElement(mem,'nd')
+                        nd.set('lon',ll[0])
+                        nd.set('lat',ll[1])
+                        nd.set('ref',child.get('ref'))
+            else:
+                for node_id in ways.get(ref).nodes:
+                    ll = get_lat_lon(str(node_id),use_new)
+                    nd = ET.SubElement(mem,'nd')
+                    nd.set('lon',ll[0])
+                    nd.set('lat',ll[1])
+                    nd.set('ref',str(node_id))
+        elif mem.get('type') == 'node':
+            ll = get_lat_lon(mem.get('ref'),use_new)
+            mem.set('lon',ll[0])
+            mem.set('lat',ll[1])
+
+    def augment(elem,use_new):
+        if len(elem) == 0:
+            return
+        if elem[0].tag == 'way':
+            for child in elem[0]:
+                if child.tag == 'nd':
+                    augment_nd(child,use_new)
+        elif elem[0].tag == 'relation':
+            for child in elem[0]:
+                if child.tag == 'member':
+                    augment_member(child,use_new)
+
+    for elem in o:
+        if elem.tag == 'action':
+            old = augment(elem[0],False)
+            new = augment(elem[1],True)
+
 
 # pretty print helper
 # http://effbot.org/zone/element-lib.htm#prettyprint
