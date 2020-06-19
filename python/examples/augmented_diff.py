@@ -1,4 +1,6 @@
 from collections import namedtuple
+from datetime import datetime
+import copy
 import sys
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -23,13 +25,21 @@ osc = ET.parse(sys.argv[2]).getroot()
 for block in osc:
     if block.tag == 'create':
         for e in block:
-            # obj = create_element(e)
             action_key = e.tag + "/" + e.get("id")
             if action_key in actions:
                 # check the version TODO make sure this actually works
                 if obj.get("version") > actions[action_key].element.get("version"):
                     continue
             actions[action_key] = Action('create',e)
+    if block.tag == 'delete':
+        for e in block:
+            action_key = e.tag + "/" + e.get("id")
+            if action_key in actions:
+                # check the version TODO make sure this actually works
+                if obj.get("version") > actions[action_key].element.get("version"):
+                    continue
+            actions[action_key] = Action('delete',e)
+
 
 def sort_by_type(x):
     if x.element.tag == 'node':
@@ -46,10 +56,12 @@ sorted(action_list, key=lambda x:x.element.get('id'))
 env = osmx.Environment(sys.argv[1])
 with osmx.Transaction(env) as txn:
     locations = osmx.Locations(txn)
+    nodes = osmx.Nodes(txn)
     ways = osmx.Ways(txn)
+    relations = osmx.Relations(txn)
 
     def get_lat_lon(ref):
-        if 'node' + ref in actions:
+        if 'node/' + ref in actions:
             node = actions['node/' + ref]
             return (node.element.get('lon'),node.element.get('lat'))
         else:
@@ -85,6 +97,33 @@ with osmx.Transaction(env) as txn:
             mem.set('lon',ll[0])
             mem.set('lat',ll[1])
 
+    def set_old_metadata(elem):
+        elem_id = int(elem.get('id'))
+        if elem.tag == 'node':
+            o = nodes.get(elem_id)
+        elif elem.tag == 'way':
+            o = ways.get(elem_id)
+        else:
+            o = relations.get(elem_id)
+        if o:
+            elem.set('version',str(o.metadata.version))
+            elem.set('user',str(o.metadata.user))
+            elem.set('uid',str(o.metadata.uid))
+            # convert to ISO8601 timestamp
+            timestamp = o.metadata.timestamp
+            formatted = datetime.utcfromtimestamp(timestamp).isoformat()
+            elem.set('timestamp',formatted + 'Z')
+            elem.set('changeset',str(o.metadata.changeset))
+        else:
+            # tagless nodes
+            version = locations.get(elem_id)[2]
+            elem.set('version',str(version))
+            elem.set('user','?')
+            elem.set('uid','?')
+            elem.set('timestamp','?')
+            elem.set('changeset','?')
+
+
     for action in action_list:
         if action.element.tag == 'way':
             for child in action.element:
@@ -96,21 +135,31 @@ with osmx.Transaction(env) as txn:
                     augment_member(child)
 
 
-o = ET.Element('osm')
-o.set("version","0.6")
-o.set("generator","osmexpress python augmented_diff")
-note = ET.SubElement(o,'note')
-note.text = "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+    o = ET.Element('osm')
+    o.set("version","0.6")
+    o.set("generator","osmexpress python augmented_diff")
+    note = ET.SubElement(o,'note')
+    note.text = "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
 
-for action in action_list:
-    a = ET.SubElement(o,'action')
-    a.set('type',action.type)
-    old = ET.SubElement(a,'old')
-    new = ET.SubElement(a,'new')
-    if action.type == 'create':
-        new.append(action.element)
-    # if action.type == 'delete':
-    #     old.append(action.element)
+    for action in action_list:
+        a = ET.SubElement(o,'action')
+        a.set('type',action.type)
+        old = ET.SubElement(a,'old')
+        new = ET.SubElement(a,'new')
+        if action.type == 'create':
+            new.append(action.element)
+        if action.type == 'delete':
+            # get the old metadata
+            modified = copy.deepcopy(action.element)
+            set_old_metadata(action.element)
+            old.append(action.element)
+
+            modified.set('visible','false')
+            for child in list(modified):
+                modified.remove(child)
+            # TODO the Geofabrik deleted elements seem to have the old metadata and old version numbers
+            # check if this is true of planet replication files
+            new.append(modified)
     # if action.type == 'modify':
     #     pass
 
