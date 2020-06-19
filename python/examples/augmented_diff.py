@@ -46,24 +46,55 @@ sorted(action_list, key=lambda x:x.element.get('id'))
 env = osmx.Environment(sys.argv[1])
 with osmx.Transaction(env) as txn:
     locations = osmx.Locations(txn)
+    ways = osmx.Ways(txn)
+
+    def get_lat_lon(ref):
+        if 'node' + ref in actions:
+            node = actions['node/' + ref]
+            return (node.element.get('lon'),node.element.get('lat'))
+        else:
+            ll = locations.get(ref)
+            return (str(ll[0]),str(ll[1]))
 
     def augment_nd(nd):
-        ref = nd.get('ref')
+        ll = get_lat_lon(nd.get('ref'))
+        nd.set('lon',ll[0])
+        nd.set('lat',ll[1])
 
-        if 'node/' + ref in actions:
-            node = actions['node/' + ref]
-            nd.set('lon',node.element.get('lon'))
-            nd.set('lat',node.element.get('lat'))
-        else:
-            loc = locations.get(ref)
-            nd.set('lon',str(loc[0]))
-            nd.set('lat',str(loc[1]))
+    def augment_member(mem):
+        if mem.get('type') == 'way':
+            ref = mem.get('ref')
+            if 'way/' + ref in actions:
+                way = actions['way/' + ref]
+                for child in way.element:
+                    if child.tag == 'nd':
+                        ll = get_lat_lon(child.get('ref'))
+                        nd = ET.SubElement(mem,'nd')
+                        nd.set('lon',ll[0])
+                        nd.set('lat',ll[1])
+                        nd.set('ref',child.get('ref'))
+            else:
+                for node_id in ways.get(ref).nodes:
+                    ll = get_lat_lon(str(node_id))
+                    nd = ET.SubElement(mem,'nd')
+                    nd.set('lon',ll[0])
+                    nd.set('lat',ll[1])
+                    nd.set('ref',str(node_id))
+        elif mem.get('type') == 'node':
+            ll = get_lat_lon(mem.get('ref'))
+            mem.set('lon',ll[0])
+            mem.set('lat',ll[1])
 
     for action in action_list:
         if action.element.tag == 'way':
             for child in action.element:
                 if child.tag == 'nd':
                     augment_nd(child)
+        if action.element.tag == 'relation':
+            for child in action.element:
+                if child.tag == 'member':
+                    augment_member(child)
+
 
 o = ET.Element('osm')
 o.set("version","0.6")
