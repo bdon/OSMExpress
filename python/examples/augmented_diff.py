@@ -23,23 +23,13 @@ actions = {}
 
 osc = ET.parse(sys.argv[2]).getroot()
 for block in osc:
-    if block.tag == 'create':
-        for e in block:
-            action_key = e.tag + "/" + e.get("id")
-            if action_key in actions:
-                # check the version TODO make sure this actually works
-                if obj.get("version") > actions[action_key].element.get("version"):
-                    continue
-            actions[action_key] = Action('create',e)
-    if block.tag == 'delete':
-        for e in block:
-            action_key = e.tag + "/" + e.get("id")
-            if action_key in actions:
-                # check the version TODO make sure this actually works
-                if obj.get("version") > actions[action_key].element.get("version"):
-                    continue
-            actions[action_key] = Action('delete',e)
-
+    for e in block:
+        action_key = e.tag + "/" + e.get("id")
+        if action_key in actions:
+            # check the version TODO make sure this actually works
+            if obj.get("version") > actions[action_key].element.get("version"):
+                continue
+        actions[action_key] = Action(block.tag,e)
 
 def sort_by_type(x):
     if x.element.tag == 'node':
@@ -59,6 +49,23 @@ with osmx.Transaction(env) as txn:
     nodes = osmx.Nodes(txn)
     ways = osmx.Ways(txn)
     relations = osmx.Relations(txn)
+
+    def not_in_db(elem):
+        elem_id = int(elem.get('id'))
+        if elem.tag == 'node':
+            return not locations.get(elem_id)
+        elif elem.tag == 'way':
+            return not ways.get(elem_id)
+        else:
+            return not relations.get(elem_id)
+
+    def get_lat_lon(ref, use_new):
+        if use_new and ('node/' + ref in actions):
+            node = actions['node/' + ref]
+            return (node.element.get('lon'),node.element.get('lat'))
+        else:
+            ll = locations.get(ref)
+            return (str(ll[1]),str(ll[0]))
 
     def set_old_metadata(elem):
         elem_id = int(elem.get('id'))
@@ -101,7 +108,7 @@ with osmx.Transaction(env) as txn:
         new = ET.SubElement(a,'new')
         if action.type == 'create':
             new.append(action.element)
-        if action.type == 'delete':
+        elif action.type == 'delete':
             # get the old metadata
             modified = copy.deepcopy(action.element)
             set_old_metadata(action.element)
@@ -114,19 +121,45 @@ with osmx.Transaction(env) as txn:
             # check if this is true of planet replication files
             new.append(modified)
         else:
-            # action.type == 'modify'
-            pass
-            modified = copy.deepcopy(action.element)
+            obj_id = action.element.get('id')
+            if not_in_db(action.element):
+                # TODO verify this is correct
+                print("Could not find {0} {1} in db, changing to create".format(action.element.tag,action.element.get('id')))
+                new.append(action.element)
+                a.set('type','create')
+            else:
+                prev_version = ET.SubElement(old,action.element.tag)
+                prev_version.set('id',obj_id)
+                set_old_metadata(prev_version)
+                if action.element.tag == 'node':
+                    ll = get_lat_lon(obj_id,False)
+                    prev_version.set('lon',ll[0])
+                    prev_version.set('lat',ll[1])
+                elif action.element.tag == 'way':
+                    way = ways.get(obj_id)
+                    for n in way.nodes:
+                        node = ET.SubElement(prev_version,'nd')
+                        node.set('ref',str(n))
+                    it = iter(way.tags)
+                    for t in it:
+                        tag = ET.SubElement(prev_version,'tag')
+                        tag.set('k',t)
+                        tag.set('v',next(it)) 
+                else:
+                    relation = relations.get(obj_id)
+                    for m in relation.members:
+                        member = ET.SubElement(prev_version,'member')
+                        member.set('ref',str(m.ref))
+                        member.set('role',m.role)
+                        member.set('type',str(m.type))
+                    it = iter(relation.tags)
+                    for t in it:
+                        tag = ET.SubElement(prev_version,'tag')
+                        tag.set('k',t)
+                        tag.set('v',next(it)) 
+                new.append(action.element)
 
     # Augment the created "old" and "new" elements
-
-    def get_lat_lon(ref, use_new):
-        if use_new and ('node/' + ref in actions):
-            node = actions['node/' + ref]
-            return (node.element.get('lon'),node.element.get('lat'))
-        else:
-            ll = locations.get(ref)
-            return (str(ll[0]),str(ll[1]))
 
     def augment_nd(nd,use_new):
         ll = get_lat_lon(nd.get('ref'),use_new)
