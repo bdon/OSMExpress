@@ -29,6 +29,22 @@ class Transaction:
     def __exit__(self,*args,**kwargs):
         self._handle.__exit__(*args,**kwargs)
 
+class Index:
+    def __init__(self):
+        pass
+
+class Index:
+    def __init__(self,txn,name):
+        self.txn = txn
+        self._handle = txn.env._handle.open_db(name,txn=txn._handle,integerkey=True,create=False,dupsort=True,integerdup=True,dupfixed=True)
+
+    def get(self,obj_id):
+        cursor = self.txn._handle.cursor(self._handle)
+        cursor.set_key(int(obj_id).to_bytes(8,byteorder=sys.byteorder))
+        retval = [int.from_bytes(data,byteorder=sys.byteorder,signed=False) for data in cursor.iternext_dup()]
+        cursor.close()
+        return retval
+
 class Table:
     def __init__(self,txn,name):
         self.txn = txn
@@ -80,3 +96,19 @@ class Relations(Table):
         if not msg:
             return None
         return messages_capnp.Relation.from_bytes(msg)
+
+class NodeWay(Index):
+    def __init__(self,txn):
+        super().__init__(txn,b'node_way')
+
+class NodeRelation(Index):
+    def __init__(self,txn):
+        super().__init__(txn,b'node_relation')
+
+class WayRelation(Index):
+    def __init__(self,txn):
+        super().__init__(txn,b'way_relation')
+
+class RelationRelation(Index):
+    def __init__(self,txn):
+        super().__init__(txn,b'relation_relation')
