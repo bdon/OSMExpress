@@ -14,9 +14,9 @@ if len(sys.argv) < 4:
     print("Usage: augmented_diff.py OSMX_FILE OSC_FILE OUTPUT")
     exit(1)
 
-# 1st pass: populate the actions
-
-# dictionary from osm_type/osm_id to action
+# 1st pass: 
+# populate the collection of actions
+# create dictionary from osm_type/osm_id to action
 # e.g. node/12345 > Node()
 Action = namedtuple('Action',['type','element'])
 actions = {}
@@ -39,10 +39,7 @@ def sort_by_type(x):
     return 3
 
 action_list = [v for k,v in actions.items()]
-sorted(action_list, key=sort_by_type)
-sorted(action_list, key=lambda x:x.element.get('id'))
 
-# 2nd pass: fill in references
 env = osmx.Environment(sys.argv[1])
 with osmx.Transaction(env) as txn:
     locations = osmx.Locations(txn)
@@ -93,7 +90,8 @@ with osmx.Transaction(env) as txn:
             elem.set('timestamp','?')
             elem.set('changeset','?')
 
-    # Create a list of actions
+    # 2nd pass
+    # create an XML tree of actions with old and new sub-elements
 
     o = ET.Element('osm')
     o.set("version","0.6")
@@ -159,8 +157,8 @@ with osmx.Transaction(env) as txn:
                         tag.set('v',next(it)) 
                 new.append(action.element)
 
+    # 3rd pass
     # Augment the created "old" and "new" elements
-
     def augment_nd(nd,use_new):
         ll = get_lat_lon(nd.get('ref'),use_new)
         nd.set('lon',ll[0])
@@ -202,9 +200,104 @@ with osmx.Transaction(env) as txn:
 
     for elem in o:
         if elem.tag == 'action':
-            old = augment(elem[0],False)
-            new = augment(elem[1],True)
+            augment(elem[0],False)
+            augment(elem[1],True)
 
+    # 4th pass:
+    # find changes that propagate to referencing elements:
+    # when a node's location changes, that propagates to any ways it belongs to, relations it belongs to
+    # and also any relations that the way belongs to
+    # when a way's member list changes, it propagates to any relations it belongs to
+    node_way = osmx.NodeWay(txn)
+    node_relation = osmx.NodeRelation(txn)
+    way_relation = osmx.WayRelation(txn)
+
+    affected_ways = set()
+    affected_relations = set()
+    for elem in o:
+        if elem.get('type') == 'modify':
+            if elem[0][0].tag == 'node':
+                old_loc = (elem[0][0].get('lat'),elem[0][0].get('lon'))
+                new_loc = (elem[1][0].get('lat'),elem[1][0].get('lon'))
+                if old_loc != new_loc:
+                    node_id = elem[0][0].get('id')
+                    for rel in node_relation.get(node_id):
+                        if 'relation/' + str(rel) not in actions:
+                            affected_relations.add(rel)
+                    for way in node_way.get(node_id):
+                        if 'way/' + str(way) not in actions:
+                            affected_ways.add(way)
+                            for rel in way_relation.get(way):
+                                if 'relation/' + str(rel) not in actions:
+                                    affected_relations.add(rel)
+
+            elif elem[0][0].tag == 'way':
+                old_way = [nd.get('ref') for nd in elem[0][0] if nd.tag == 'nd']
+                new_way = [nd.get('ref') for nd in elem[1][0] if nd.tag == 'nd']
+                if old_way != new_way:
+                    way_id = elem[0][0].get('id')
+                    for rel in way_relation.get(way_id):
+                        if 'relation/' + str(rel) not in actions:
+                            affected_relations.add(rel)
+
+    for w in affected_ways:
+        a = ET.SubElement(o,'action')
+        a.set('type','modify')
+        old = ET.SubElement(a,'old')
+        way_element = ET.SubElement(old,'way')
+        way_element.set('id',str(w))
+        set_old_metadata(way_element)
+        way = ways.get(w)
+        for n in way.nodes:
+            node = ET.SubElement(way_element,'nd')
+            node.set('ref',str(n))
+        it = iter(way.tags)
+        for t in it:
+            tag = ET.SubElement(way_element,'tag')
+            tag.set('k',t)
+            tag.set('v',next(it)) 
+
+        new = ET.SubElement(a,'new')
+        new_elem = copy.deepcopy(way_element)
+        new.append(new_elem)
+        augment(old,False)
+        augment(new,True)
+
+    for r in affected_relations:
+        old = ET.Element('old')
+        relation_element = ET.SubElement(old,'relation')
+        relation_element.set('id',str(r))
+        set_old_metadata(relation_element)
+        relation = relations.get(r)
+
+        for m in relation.members:
+            member = ET.SubElement(relation_element,'member')
+            member.set('ref',str(m.ref))
+            member.set('role',m.role)
+            member.set('type',str(m.type))
+        it = iter(relation.tags)
+        for t in it:
+            tag = ET.SubElement(relation_element,'tag')
+            tag.set('k',t)
+            tag.set('v',next(it)) 
+
+        new_elem = copy.deepcopy(relation_element)
+        new = ET.Element('new')
+        new.append(new_elem)
+        try:
+            augment(old,False)
+            augment(new,True)
+            a = ET.SubElement(o,'action')
+            a.set('type','modify')
+            a.append(old)
+            a.append(new)
+        except (TypeError, AttributeError):
+            print("Affected relation {0} is incomplete in db".format(r))
+
+# 5th pass: add bounding boxes
+
+# sorted(action_list, key=sort_by_type)
+# sorted(action_list, key=lambda x:x.element.get('id'))
 
 # pretty print helper
 # http://effbot.org/zone/element-lib.htm#prettyprint
