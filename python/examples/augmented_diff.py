@@ -31,12 +31,6 @@ for block in osc:
                 continue
         actions[action_key] = Action(block.tag,e)
 
-def sort_by_type(x):
-    if x.element.tag == 'node':
-        return 1
-    elif x.element.tag == 'way':
-        return 2
-    return 3
 
 action_list = [v for k,v in actions.items()]
 
@@ -96,8 +90,6 @@ with osmx.Transaction(env) as txn:
     o = ET.Element('osm')
     o.set("version","0.6")
     o.set("generator","Overpass API not used, but achavi detects it at the start of string; OSMExpress/python/examples/augmented_diff.py")
-    note = ET.SubElement(o,'note')
-    note.text = "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
 
     for action in action_list:
         a = ET.SubElement(o,'action')
@@ -199,9 +191,8 @@ with osmx.Transaction(env) as txn:
                     augment_member(child,use_new)
 
     for elem in o:
-        if elem.tag == 'action':
-            augment(elem[0],False)
-            augment(elem[1],True)
+        augment(elem[0],False)
+        augment(elem[1],True)
 
     # 4th pass:
     # find changes that propagate to referencing elements:
@@ -296,8 +287,57 @@ with osmx.Transaction(env) as txn:
 
 # 5th pass: add bounding boxes
 
-# sorted(action_list, key=sort_by_type)
-# sorted(action_list, key=lambda x:x.element.get('id'))
+class Bounds:
+    def __init__(self):
+        self.minx = 180
+        self.maxx = -180
+        self.miny = 90
+        self.maxy = -90
+
+    def add(self,x,y):
+        if x < self.minx:
+            self.minx = x
+        if x > self.maxx:
+            self.maxx = x
+        if y < self.miny:
+            self.miny = y
+        if y > self.maxy:
+            self.maxy = y
+
+    def elem(self):
+        e = ET.Element('bounds')
+        e.set('minlat',str(self.miny))
+        e.set('minlon',str(self.minx))
+        e.set('maxlat',str(self.maxy))
+        e.set('maxlon',str(self.maxx))
+        return e
+
+for child in o:
+    if len(child[0]) > 0:
+        osm_obj = child[0][0]
+        nds = osm_obj.findall('.//nd')
+        if nds:
+            bounds = Bounds()
+            for nd in nds:
+                bounds.add(float(nd.get('lon')),float(nd.get('lat')))
+            osm_obj.insert(0,bounds.elem())
+
+# 6th pass
+# sort by node, way, relation
+# within each, sorted by increasing ID
+def sort_by_type(x):
+    if x[1][0].tag == 'node':
+        return 1
+    elif x[1][0].tag == 'way':
+        return 2
+    return 3
+
+o[:] = sorted(o, key=lambda x:int(x[1][0].get('id')))
+o[:] = sorted(o, key=sort_by_type)
+
+note = ET.Element('note')
+note.text = "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+o.insert(0,note)
 
 # pretty print helper
 # http://effbot.org/zone/element-lib.htm#prettyprint
