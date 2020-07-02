@@ -4,14 +4,16 @@
 
 [Manual](https://protomaps.com/docs/osmexpress/), [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide/)
 
-OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools.
+OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools. It's designed to be low level building block specifically for OSM data that makes common access patterns: random lookups by ID, in-place minutely updates, and spatial queries both efficient and simple to manage in production applications. 
 
-* **Random access:** Look up nodes, ways and relations and their metadata by ID; fetch member elements to construct geometries.
+## Features
+
+* **Random access:** Look up nodes, ways and relations and their metadata by ID; fetch member elements of ways and relations to construct geometries.
 * **Spatial indexing:** Nodes are bucketed into [S2 Geometry](http://s2geometry.io) cells. Access a region by providing a cell covering; works for nonrectangular regions.
 * **Scalable:** OSM Express works the same way for OSM data of any size, from a small city to the entire planet. The entire planet can be worked with efficiently on typical hardware such as a laptop computer.
 * **In-place updates:** Included are scripts to download minutely changesets from [planet.openstreetmap.org](https://planet.openstreetmap.org) and apply them to an .osmx database.
 * **Concurrent access:** Multiple processes can open the database file for reading simultaneously. No running server process is required. Writing minutely updates doesn't block reader access. Reads and writes are transactional. 
-* **Portable:** Access an .osmx file from other languages such as Python.
+* **Portable:** An .osmx file can be read and written to from either C++ or Python.
 
 ## Details
 
@@ -31,7 +33,10 @@ Binary releases are available at [Releases](https://github.com/protomaps/OSMExpr
 
 ## Usage
 
-OSM Express is being used in production, but should still be considered experimental with an unstable API. The simplest way to use it is via the `osmx` command line program. It can also be embedded into a C++ project by including headers.
+OSM Express is being used in production, but should still be considered experimental with an unstable API.
+* Use the `osmx` command line tool to expand a .osm.pbf to an .osmx database and perform basic tasks such as extracting regions or querying by ID. No programming required.
+* Use the [Python library](python/) library via `pip install osmx` to access an .osmx database programatically. See the [Python Examples](python/examples) for how to create command line tools, webservers or detailed diffs based on minutely data. 
+* Use the C++ library to access an .osmx database programatically. 
 
 ### Command line
 
@@ -59,14 +64,6 @@ Empire State Building	LINESTRING (-73.9864855 40.7484833,-73.9851554 40.7479226,
 [examples/bbox_wkt.cpp](examples/bbox_wkt.cpp) is a more complex example that takes a bounding box as input, and returns WKT LineStrings for ways that overlap the bbox. This overlap is an approximation based on cells and may include ways outside the bounding box.
 
 Detailed C++ usage can be found in the [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide).
-
-### Other languages
-
-A Python library with basic object lookup functionality can be installed via:
-
-`pip install osmx`
-
-See [python/README.md](/python/README.md) for a short example of how to read OSM objects, tags and coordinates.
 
 ### Docker (experimental)
 
