@@ -27,6 +27,11 @@ class Handler(BaseHTTPRequestHandler):
         resp = {'type':'Feature','properties':{}}
         with osmx.Transaction(env) as txn:
             locations = osmx.Locations(txn)
+
+            def coord(node_id):
+                loc = locations.get(node_id)
+                return (loc[1],loc[0])
+
             nodes = osmx.Nodes(txn)
             if parts[1] == "node":
                 node = nodes.get(osm_id)
@@ -34,15 +39,14 @@ class Handler(BaseHTTPRequestHandler):
                     for k,v in osmx.tag_dict(node.tags).items():
                         resp['properties'][k] = v
 
-                loc = locations.get(osm_id)
-                resp['geometry'] = {'type':'Point','coordinates':loc}
+                resp['geometry'] = {'type':'Point','coordinates':coord(osm_id)}
             elif parts[1] == "way":
                 ways = osmx.Ways(txn)
                 way = ways.get(osm_id)
                 for k,v in osmx.tag_dict(way.tags).items():
                     resp['properties'][k] = v
 
-                coords = [locations.get(node_id) for node_id in way.nodes]
+                coords = [coord(node_id) for node_id in way.nodes]
                 resp['geometry'] = {'type':'LineString','coordinates':coords}
             elif parts[1] == "relation":
                 ways = osmx.Ways(txn)
@@ -58,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
                             geometries.append({'type':'Point','coordinates':locations.get(member.ref)})
                         if member.type == 'way':
                             way = ways.get(member.ref)
-                            coords = [locations.get(node_id) for node_id in way.nodes]
+                            coords = [coord(node_id) for node_id in way.nodes]
                             geometries.append({'type':'LineString','coordinates':coords})
                         if member.type == 'relation':
                             add_relation_geoms(relations.get(member.ref))
