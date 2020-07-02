@@ -4,7 +4,7 @@
 
 [Manual](https://protomaps.com/docs/osmexpress/), [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide/)
 
-OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools. It's designed to be low level building block specifically for OSM data that makes common access patterns: random lookups by ID, in-place minutely updates, and spatial queries both efficient and simple to manage in production applications. 
+OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools. It's designed as a low level building block specific to the OSM data model; common access patterns such as random lookups by ID, in-place minutely updates, and spatial queries are efficient and simple to manage in production applications. 
 
 ## Features
 
