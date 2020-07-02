@@ -191,8 +191,12 @@ with osmx.Transaction(env) as txn:
                     augment_member(child,use_new)
 
     for elem in o:
-        augment(elem[0],False)
-        augment(elem[1],True)
+        try:
+            augment(elem[0],False)
+            augment(elem[1],True)
+        except (TypeError, AttributeError):
+            print("Changed {0} {1} is incomplete in db".format(elem[1][0].tag, elem[1][0].get('id')))
+
 
     # 4th pass:
     # find changes that propagate to referencing elements:
