@@ -14,7 +14,7 @@ if len(sys.argv) < 4:
     print("Usage: augmented_diff.py OSMX_FILE OSC_FILE OUTPUT")
     exit(1)
 
-# 1st pass: 
+# 1st pass:
 # populate the collection of actions
 # create dictionary from osm_type/osm_id to action
 # e.g. node/12345 > Node()
@@ -25,9 +25,13 @@ osc = ET.parse(sys.argv[2]).getroot()
 for block in osc:
     for e in block:
         action_key = e.tag + "/" + e.get("id")
+        # Always ensure we're updating to the latest version of an object for the diff
         if action_key in actions:
-            # check the version TODO make sure this actually works
-            if obj.get("version") > actions[action_key].element.get("version"):
+            newest_version = int(actions[action_key].element.get("version"))
+            e_version = int(e.get("version"))
+            if e_version < newest_version:
+                print("Found element {}, version {} is less than previously visited version {}"
+                      .format(action_key, e_version, newest_version))
                 continue
         actions[action_key] = Action(block.tag,e)
 
@@ -77,7 +81,14 @@ with osmx.Transaction(env) as txn:
             elem.set('changeset',str(o.metadata.changeset))
         else:
             # tagless nodes
-            version = locations.get(elem_id)[2]
+            try:
+                version = locations.get(elem_id)[2]
+            except TypeError:
+                # If loc is None here, it typically means that a node was created and
+                # then deleted within the diff interval. In the future we should
+                # remove these operations from the diff entirely.
+                print("No old loc found for tagless node {}".format(elem_id))
+                version = "?"
             elem.set('version',str(version))
             elem.set('user','?')
             elem.set('uid','?')
@@ -113,7 +124,11 @@ with osmx.Transaction(env) as txn:
         else:
             obj_id = action.element.get('id')
             if not_in_db(action.element):
-                # TODO verify this is correct
+                # Typically occurs when:
+                #  1. TODO: An element is deleted but then restored later,
+                #     which should remain a modify operation. This will be difficult
+                #     because objects are not retained in OSMX when deleted in OSM.
+                #  2. OK: An element was created and then modified within the diff interval
                 print("Could not find {0} {1} in db, changing to create".format(action.element.tag,action.element.get('id')))
                 new.append(action.element)
                 a.set('type','create')
@@ -134,7 +149,7 @@ with osmx.Transaction(env) as txn:
                     for t in it:
                         tag = ET.SubElement(prev_version,'tag')
                         tag.set('k',t)
-                        tag.set('v',next(it)) 
+                        tag.set('v',next(it))
                 else:
                     relation = relations.get(obj_id)
                     for m in relation.members:
@@ -146,7 +161,7 @@ with osmx.Transaction(env) as txn:
                     for t in it:
                         tag = ET.SubElement(prev_version,'tag')
                         tag.set('k',t)
-                        tag.set('v',next(it)) 
+                        tag.set('v',next(it))
                 new.append(action.element)
 
     # 3rd pass
@@ -250,7 +265,7 @@ with osmx.Transaction(env) as txn:
         for t in it:
             tag = ET.SubElement(way_element,'tag')
             tag.set('k',t)
-            tag.set('v',next(it)) 
+            tag.set('v',next(it))
 
         new = ET.SubElement(a,'new')
         new_elem = copy.deepcopy(way_element)
@@ -274,7 +289,7 @@ with osmx.Transaction(env) as txn:
         for t in it:
             tag = ET.SubElement(relation_element,'tag')
             tag.set('k',t)
-            tag.set('v',next(it)) 
+            tag.set('v',next(it))
 
         new_elem = copy.deepcopy(relation_element)
         new = ET.Element('new')
@@ -358,7 +373,7 @@ def indent(elem, level=0):
             elem.tail = i
     else:
         if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i   
+            elem.tail = i
 
 indent(o)
 ET.ElementTree(o).write(sys.argv[3])
