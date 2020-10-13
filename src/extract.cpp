@@ -80,6 +80,7 @@ void cmdExtract(int argc, char * argv[]) {
     ("geojson","geoJson of region", cxxopts::value<string>())
     ("poly","osmosis .poly of region", cxxopts::value<string>())
     ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
+    ("expand","buffer radius in degrees",cxxopts::value<double>())
   ;
   cmd_options.parse_positional({"cmd","osmx","output"});
   auto result = cmd_options.parse(argc, argv);
@@ -91,6 +92,7 @@ void cmdExtract(int argc, char * argv[]) {
     cout << "OPTIONS:" << endl;
     cout << " --v,--verbose: verbose output." << endl;
     cout << " --jsonOutput: log progress as JSON messages." << endl;
+    cout << " --expand DEGREES: buffer the region by an amount in degrees, e.g. 0.01" << endl;
     cout << " --bbox MIN_LAT,MIN_LON,MAX_LAT,MAX_LON: region is lat/lon bbox" << endl;
     cout << " --disc CENTER_LAT,CENTER_LON,R_DEGREES: region is disc" << endl;
     cout << " --geojson GEOJSON: region is an areal GeoJSON feature or geometry" << endl;
@@ -132,6 +134,11 @@ void cmdExtract(int argc, char * argv[]) {
   options.set_max_level(CELL_INDEX_LEVEL);
   S2RegionCoverer coverer(options);
   S2CellUnion covering = region->GetCovering(coverer);
+
+  if (result.count("expand")) {
+    covering.Expand(S1Angle::Degrees(result["expand"].as<double>()),16);
+  }
+
   if (!jsonOutput) {
     cout << "Query cells: " << covering.cell_ids().size() << endl;
   }
