@@ -80,6 +80,7 @@ void cmdExtract(int argc, char * argv[]) {
     ("geojson","geoJson of region", cxxopts::value<string>())
     ("poly","osmosis .poly of region", cxxopts::value<string>())
     ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
+    ("expand","buffer at this cell level",cxxopts::value<int>())
   ;
   cmd_options.parse_positional({"cmd","osmx","output"});
   auto result = cmd_options.parse(argc, argv);
@@ -96,6 +97,7 @@ void cmdExtract(int argc, char * argv[]) {
     cout << " --geojson GEOJSON: region is an areal GeoJSON feature or geometry" << endl;
     cout << " --poly POLY: region is an Osmosis polygon" << endl;
     cout << " --region FILE: text file with .bbox, .disc, .json or .poly extension" << endl;
+    cout << " --expand CELL_LEVEL: buffer region with cells at this level, <= 16" << endl;
     exit(1);
   }
 
@@ -132,6 +134,14 @@ void cmdExtract(int argc, char * argv[]) {
   options.set_max_level(CELL_INDEX_LEVEL);
   S2RegionCoverer coverer(options);
   S2CellUnion covering = region->GetCovering(coverer);
+
+  if (result.count("expand")) {
+    int expand = result["expand"].as<int>();
+    if (expand >= 0 && expand <= 16) {
+      covering.Expand(expand);
+    }
+  }
+
   if (!jsonOutput) {
     cout << "Query cells: " << covering.cell_ids().size() << endl;
   }
