@@ -38,12 +38,16 @@ class Index:
         self.txn = txn
         self._handle = txn.env._handle.open_db(name,txn=txn._handle,integerkey=True,create=False,dupsort=True,integerdup=True,dupfixed=True)
 
-    def get(self,obj_id):
+    def __getitem__(self,obj_id):
         cursor = self.txn._handle.cursor(self._handle)
         cursor.set_key(int(obj_id).to_bytes(8,byteorder=sys.byteorder))
         retval = [int.from_bytes(data,byteorder=sys.byteorder,signed=False) for data in cursor.iternext_dup()]
         cursor.close()
         return retval
+
+    # TODO deprecate get
+    def get(self,obj_id):
+        return self[obj_id]
 
 class Table:
     def __init__(self,txn,name):
@@ -53,11 +57,33 @@ class Table:
     def _get_bytes(self,elem_id):
         return self.txn._handle.get(int(elem_id).to_bytes(8,byteorder=sys.byteorder),db=self._handle)
 
+    def __contains__(self,key):
+        if self._get_bytes(key):
+            return True
+        return False
+
+    def __getitem__(self,oid):
+        msg = self._get_bytes(oid)
+        if not msg:
+            return None
+        return self.msgclass.from_bytes(msg)
+
+    # TODO deprecate get
+    def get(self,oid):
+        return self[oid]
+
+    def __iter__(self):
+        cursor = self.txn._handle.cursor(self._handle)
+        cursor.first()
+        for o in iter(cursor):
+            obj_id = int.from_bytes(o[0],byteorder=sys.byteorder,signed=False)
+            yield (obj_id,self.msgclass.from_bytes(o[1]))
+
 class Locations(Table):
     def __init__(self,txn):
         super().__init__(txn,b'locations')
 
-    def get(self,node_id):
+    def __getitem__(self,node_id):
         msg = self._get_bytes(node_id)
         if not msg:
             return None
@@ -67,35 +93,32 @@ class Locations(Table):
             int.from_bytes(msg[8:12],byteorder=sys.byteorder,signed=False)
             )
 
+    def __iter__(self):
+        cursor = self.txn._handle.cursor(self._handle)
+        cursor.first()
+        for o in iter(cursor):
+            obj_id = int.from_bytes(o[0],byteorder=sys.byteorder,signed=False)
+            msg = o[1]
+            yield (obj_id, (
+                int.from_bytes(msg[4:8],byteorder=sys.byteorder,signed=True) / 10000000,
+                int.from_bytes(msg[0:4],byteorder=sys.byteorder,signed=True) / 10000000,
+                int.from_bytes(msg[8:12],byteorder=sys.byteorder,signed=False)
+            ))
+
 class Nodes(Table):
     def __init__(self,txn):
         super().__init__(txn,b'nodes')
-
-    def get(self,node_id):
-        msg = self._get_bytes(node_id)
-        if not msg:
-            return None
-        return messages_capnp.Node.from_bytes(msg)
+        self.msgclass = messages_capnp.Node
 
 class Ways(Table):
     def __init__(self,txn):
         super().__init__(txn,b'ways')
-
-    def get(self,way_id):
-        msg = self._get_bytes(way_id)
-        if not msg:
-            return None
-        return messages_capnp.Way.from_bytes(msg)
+        self.msgclass = messages_capnp.Way
 
 class Relations(Table):
     def __init__(self,txn):
         super().__init__(txn,b'relations')
-
-    def get(self,relation_id):
-        msg = self._get_bytes(relation_id)
-        if not msg:
-            return None
-        return messages_capnp.Relation.from_bytes(msg)
+        self.msgclass = messages_capnp.Relation
 
 class NodeWay(Index):
     def __init__(self,txn):
