@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < nodes.size(); i++) {
     auto location = locations.get(nodes[i]);
     if (i > 0) cout << ",";
-    cout << location.lon() << " " << location.lat();
+    cout << location.coords.lon() << " " << location.coords.lat();
   }
   cout << ")" << endl;
 
