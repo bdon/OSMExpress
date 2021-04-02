@@ -57,3 +57,8 @@ add_test(osmxTest osmxTest)
 install(TARGETS osmx DESTINATION bin)
 add_custom_target(archive COMMAND dist/archive.sh ${OSMX_VERSION} ${CMAKE_SYSTEM_NAME})
 add_dependencies(archive osmx)
+
+add_library(osmx-static STATIC src/storage.cpp src/expand.cpp src/extract.cpp src/update.cpp src/region.cpp)
+set_property(TARGET osmx-static PROPERTY CXX_STANDARD 14)
+
+add_dependencies(osmx-static build_lmdb s2 kj capnp)
