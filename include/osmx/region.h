@@ -14,5 +14,6 @@ public:
 
 private:
 	void AddS2RegionFromGeometry(nlohmann::json &geometry);
+	void AddS2RegionFromPolyFile(std::istringstream &file);
 	std::vector<std::unique_ptr<S2Region>> mRegions;
 };

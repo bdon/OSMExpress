@@ -44,6 +44,31 @@ void Region::AddS2RegionFromGeometry(nlohmann::json &geometry) {
     }
 }
 
+void Region::AddS2RegionFromPolyFile(std::istringstream &file) {
+    std::vector<S2Point> points;
+    std::string line;
+
+    while (std::getline(file, line)) {
+        rtrim(line);
+        double lat, lon;
+        // END of polygon
+        if (line == "END") {
+            break;
+        } else {
+            std::istringstream iss(line);
+            iss >> lon;
+            iss >> lat;
+            points.push_back(S2LatLng::FromDegrees(lat,lon).Normalized().ToPoint());
+        }
+    }
+
+    if (points[0] == points[points.size() - 1]) points.pop_back();
+
+    auto loop = std::make_unique<S2Loop>(points);
+    loop->Normalize();
+    mRegions.push_back(std::move(loop));
+}
+
 Region::Region(const std::string &text, const std::string &ext) {
     if (ext == "bbox") {
         double minLat,minLon,maxLat,maxLon;
@@ -63,29 +88,16 @@ Region::Region(const std::string &text, const std::string &ext) {
 
         // discard the first line
         std::getline(f,line);
-        // start the first polygon
-        std::getline(f,line);
-        std::vector<S2Point> points;
 
+        // this will either parse name of next polygon
+        // or END at end of file 
         while (std::getline(f, line)) {
-            rtrim(line);
-            double lat, lon;
+            // END of file
             if (line == "END") {
-
-            } else {
-                std::istringstream iss(line);
-                iss >> lat;
-                iss >> lon;
-                points.push_back(S2LatLng::FromDegrees(lat,lon).Normalized().ToPoint());
+                break;
             }
-
+            AddS2RegionFromPolyFile(f);
         }
-
-        if (points[0] == points[points.size() - 1]) points.pop_back();
-
-        auto loop = std::make_unique<S2Loop>(points);
-        loop->Normalize();
-        mRegions.push_back(std::move(loop));
     } else if (ext == "geojson") {
         auto json = nlohmann::json::parse(text);
         if (json["type"] == "Polygon" || json["type"] == "MultiPolygon") {
