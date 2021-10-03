@@ -126,21 +126,22 @@ TEST_CASE("geojson polygon") {
     }
 }
 
-// test handle whitespace
+// .poly in Lon, Lat order
 TEST_CASE("osmosis .poly") {
     SECTION("simple polygon") {
         string poly = R"poly(basic
 first_area
-    0.1e+01 0.1e+01
-    0.1e+01 -0.1e+01
-    -0.1e+01    -0.1e+01
-    -0.1e+01    0.1e+01
+    0.2e+01 0.1e+01
+    0.2e+01 -0.1e+01
+    -0.2e+01    -0.1e+01
+    -0.2e+01    0.1e+01
 END
 END
 )poly";
         Region s{poly,"poly"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0,0).ToPoint()));
-        REQUIRE(!s.Contains(S2LatLng::FromDegrees(2.0,2.0).ToPoint()));
+        REQUIRE(!s.Contains(S2LatLng::FromDegrees(2.0,3.0).ToPoint()));
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(0.5,1.5).ToPoint()));
     }
 
     SECTION("different whitespace, opposite orientation") {
@@ -175,7 +176,24 @@ END
     }
 
     SECTION("multiple outer loops") {
-
+        string poly = R"poly(basic
+first_area
+    0.1E+01 0.1E+01
+    -0.1E+01    0.1E+01
+    -0.1E+01    -0.1E+01
+    0.1E+01 -0.1E+01
+END
+second_area
+    0.4E+01 0.4E+01
+    0.3E+01    0.4E+01
+    0.3E+01    0.3E+01
+    0.4E+01 0.3E+01
+END
+END
+)poly";
+        Region s{poly,"poly"};
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(0,0).ToPoint()));
+        REQUIRE(!s.Contains(S2LatLng::FromDegrees(3.5,3.5).ToPoint()));
     }
 
     SECTION("loop with hole") {
