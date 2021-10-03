@@ -193,7 +193,8 @@ END
 )poly";
         Region s{poly,"poly"};
         REQUIRE(s.Contains(S2LatLng::FromDegrees(0,0).ToPoint()));
-        REQUIRE(!s.Contains(S2LatLng::FromDegrees(3.5,3.5).ToPoint()));
+        REQUIRE(s.Contains(S2LatLng::FromDegrees(3.5,3.5).ToPoint()));
+        REQUIRE(!s.Contains(S2LatLng::FromDegrees(1.0,1.0).ToPoint()));
     }
 
     SECTION("loop with hole") {
