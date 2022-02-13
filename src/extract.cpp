@@ -12,23 +12,10 @@
 #include "nlohmann/json.hpp"
 #include "osmx/storage.h"
 #include "osmx/region.h"
+#include "osmx/extract.h"
 
 using namespace std;
 using namespace osmx;
-
-struct ExportProgress {
-  string timestamp = "";
-  uint64_t cells_total = 0;
-  uint64_t cells_prog = 0;
-  uint64_t nodes_total = 0;
-  uint64_t nodes_prog = 0;
-  uint64_t elems_total = 0;
-  uint64_t elems_prog = 0;
-
-  void print() {
-    cout << "{\"Timestamp\":\"" << timestamp << "\",\"CellsTotal\":" << cells_total << ",\"CellsProg\":" << cells_prog << ",\"NodesTotal\":" << nodes_total << ",\"NodesProg\":" << nodes_prog << ",\"ElemsTotal\":" << elems_total << ",\"ElemsProg\":" << elems_prog << "}" << endl;
-  }
-};
 
 class ProgressSection {
 
@@ -64,103 +51,7 @@ static bool endsWith(const std::string& str, const std::string& suffix)
     return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
 }
 
-// must be --bbox, --disc, --poly or --json
-// or --region
-void cmdExtract(int argc, char * argv[]) {
-  cxxopts::Options cmd_options("Extract", "Create an .osm.pbf from an .osmx file.");
-  cmd_options.add_options()
-    ("v,verbose", "Verbose output")
-    ("noUserData", "Don't include changeset,uid,user fields (GDPR compliance)")
-    ("jsonOutput", "JSON progress output")
-    ("cmd", "Command to run", cxxopts::value<string>())
-    ("osmx", "Input .osmx", cxxopts::value<string>())
-    ("output", "Output file, pbf or xml", cxxopts::value<string>())
-    ("bbox", "rectangle in minLat,minLon,maxLat,maxLon", cxxopts::value<string>())
-    ("disc", "disc in centerLat,centerLon,radiusDegrees", cxxopts::value<string>())
-    ("geojson","geoJson of region", cxxopts::value<string>())
-    ("poly","osmosis .poly of region", cxxopts::value<string>())
-    ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
-    ("expand","buffer at this cell level",cxxopts::value<int>())
-  ;
-  cmd_options.parse_positional({"cmd","osmx","output"});
-  auto result = cmd_options.parse(argc, argv);
-
-  if (result.count("osmx") == 0 || result.count("output") == 0) {
-    cout << "Usage: osmx extract OSMX_FILE OUTPUT_FILE [OPTIONS]" << endl << endl;
-    cout << "EXAMPLE:" << endl;
-    cout << " osmx extract planet.osmx extract.osm.pbf --region region.json" << endl << endl;
-    cout << "OPTIONS:" << endl;
-    cout << " --v,--verbose: verbose output." << endl;
-    cout << " --jsonOutput: log progress as JSON messages." << endl;
-    cout << " --bbox MIN_LAT,MIN_LON,MAX_LAT,MAX_LON: region is lat/lon bbox" << endl;
-    cout << " --disc CENTER_LAT,CENTER_LON,R_DEGREES: region is disc" << endl;
-    cout << " --geojson GEOJSON: region is an areal GeoJSON feature or geometry" << endl;
-    cout << " --poly POLY: region is an Osmosis polygon" << endl;
-    cout << " --region FILE: text file with .bbox, .disc, .json or .poly extension" << endl;
-    cout << " --expand CELL_LEVEL: buffer region with cells at this level, <= 16" << endl;
-    exit(1);
-  }
-
-  auto startTime = std::chrono::high_resolution_clock::now();
-  ExportProgress prog;
-  string err;
-
-  bool jsonOutput = result.count("jsonOutput") > 0;
-  if (jsonOutput) prog.print();
-
-  bool includeUserData = result.count("noUserData") == 0;
-
-  std::unique_ptr<Region> region;
-  if (result.count("bbox")) region = std::make_unique<Region>(result["bbox"].as<string>(),"bbox");
-  else if (result.count("disc")) region = std::make_unique<Region>(result["disc"].as<string>(),"disc");
-  else if (result.count("geojson")) region = std::make_unique<Region>(result["geojson"].as<string>(),"geojson");
-  else if (result.count("poly")) region = std::make_unique<Region>(result["poly"].as<string>(),"poly");
-  else if (result.count("region")) {
-    auto fname = result["region"].as<string>();
-    std::ifstream t(fname);
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    if (endsWith(fname,"bbox")) region = std::make_unique<Region>(buffer.str(),"bbox");
-    if (endsWith(fname,"disc")) region = std::make_unique<Region>(buffer.str(),"disc");
-    if (endsWith(fname,"json")) region = std::make_unique<Region>(buffer.str(),"geojson");
-    if (endsWith(fname,"poly")) region = std::make_unique<Region>(buffer.str(),"poly");
-  } else {
-    cout << "No region specified." << endl;
-    exit(0);
-  }
-
-  S2RegionCoverer::Options options;
-  options.set_max_cells(1024);
-  options.set_max_level(CELL_INDEX_LEVEL);
-  S2RegionCoverer coverer(options);
-  S2CellUnion covering = region->GetCovering(coverer);
-
-  if (result.count("expand")) {
-    int expand = result["expand"].as<int>();
-    if (expand >= 0 && expand <= 16) {
-      covering.Expand(expand);
-    }
-  }
-
-  if (!jsonOutput) {
-    cout << "Query cells: " << covering.cell_ids().size() << endl;
-  }
-
-  Roaring64Map node_ids;
-  Roaring64Map way_ids;
-  Roaring64Map relation_ids;
-
-  MDB_env* env = db::createEnv(result["osmx"].as<string>(),false);
-  MDB_txn* txn;
-  CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
-
-  db::Metadata metadata(txn);
-  auto timestamp = metadata.get("osmosis_replication_timestamp");
-  prog.timestamp = timestamp;
-  if (!jsonOutput) {
-    cout << "Snapshot timestamp is " << prog.timestamp  << endl;
-  }
-
+void entitiesForRegion(MDB_txn *txn, S2CellUnion &covering, Roaring64Map &node_ids, Roaring64Map &way_ids, Roaring64Map &relation_ids, bool jsonOutput, ExportProgress &prog) {
   {
     ProgressSection section(prog,prog.cells_total,prog.cells_prog,covering.size(),jsonOutput);
     MDB_dbi dbi;
@@ -274,6 +165,106 @@ void cmdExtract(int argc, char * argv[]) {
   }
 
   if (!jsonOutput) cout << "Nodes: " << node_ids.cardinality() << endl;
+}
+
+// must be --bbox, --disc, --poly or --json
+// or --region
+void cmdExtract(int argc, char * argv[]) {
+  cxxopts::Options cmd_options("Extract", "Create an .osm.pbf from an .osmx file.");
+  cmd_options.add_options()
+    ("v,verbose", "Verbose output")
+    ("noUserData", "Don't include changeset,uid,user fields (GDPR compliance)")
+    ("jsonOutput", "JSON progress output")
+    ("cmd", "Command to run", cxxopts::value<string>())
+    ("osmx", "Input .osmx", cxxopts::value<string>())
+    ("output", "Output file, pbf or xml", cxxopts::value<string>())
+    ("bbox", "rectangle in minLat,minLon,maxLat,maxLon", cxxopts::value<string>())
+    ("disc", "disc in centerLat,centerLon,radiusDegrees", cxxopts::value<string>())
+    ("geojson","geoJson of region", cxxopts::value<string>())
+    ("poly","osmosis .poly of region", cxxopts::value<string>())
+    ("region","file for region with extension .bbox, .disc, .json or .poly", cxxopts::value<string>())
+    ("expand","buffer at this cell level",cxxopts::value<int>())
+  ;
+  cmd_options.parse_positional({"cmd","osmx","output"});
+  auto result = cmd_options.parse(argc, argv);
+
+  if (result.count("osmx") == 0 || result.count("output") == 0) {
+    cout << "Usage: osmx extract OSMX_FILE OUTPUT_FILE [OPTIONS]" << endl << endl;
+    cout << "EXAMPLE:" << endl;
+    cout << " osmx extract planet.osmx extract.osm.pbf --region region.json" << endl << endl;
+    cout << "OPTIONS:" << endl;
+    cout << " --v,--verbose: verbose output." << endl;
+    cout << " --jsonOutput: log progress as JSON messages." << endl;
+    cout << " --bbox MIN_LAT,MIN_LON,MAX_LAT,MAX_LON: region is lat/lon bbox" << endl;
+    cout << " --disc CENTER_LAT,CENTER_LON,R_DEGREES: region is disc" << endl;
+    cout << " --geojson GEOJSON: region is an areal GeoJSON feature or geometry" << endl;
+    cout << " --poly POLY: region is an Osmosis polygon" << endl;
+    cout << " --region FILE: text file with .bbox, .disc, .json or .poly extension" << endl;
+    cout << " --expand CELL_LEVEL: buffer region with cells at this level, <= 16" << endl;
+    exit(1);
+  }
+
+  auto startTime = std::chrono::high_resolution_clock::now();
+  ExportProgress prog;
+  string err;
+
+  bool jsonOutput = result.count("jsonOutput") > 0;
+  if (jsonOutput) prog.print();
+
+  bool includeUserData = result.count("noUserData") == 0;
+
+  std::unique_ptr<Region> region;
+  if (result.count("bbox")) region = std::make_unique<Region>(result["bbox"].as<string>(),"bbox");
+  else if (result.count("disc")) region = std::make_unique<Region>(result["disc"].as<string>(),"disc");
+  else if (result.count("geojson")) region = std::make_unique<Region>(result["geojson"].as<string>(),"geojson");
+  else if (result.count("poly")) region = std::make_unique<Region>(result["poly"].as<string>(),"poly");
+  else if (result.count("region")) {
+    auto fname = result["region"].as<string>();
+    std::ifstream t(fname);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    if (endsWith(fname,"bbox")) region = std::make_unique<Region>(buffer.str(),"bbox");
+    if (endsWith(fname,"disc")) region = std::make_unique<Region>(buffer.str(),"disc");
+    if (endsWith(fname,"json")) region = std::make_unique<Region>(buffer.str(),"geojson");
+    if (endsWith(fname,"poly")) region = std::make_unique<Region>(buffer.str(),"poly");
+  } else {
+    cout << "No region specified." << endl;
+    exit(0);
+  }
+
+  S2RegionCoverer::Options options;
+  options.set_max_cells(1024);
+  options.set_max_level(CELL_INDEX_LEVEL);
+  S2RegionCoverer coverer(options);
+  S2CellUnion covering = region->GetCovering(coverer);
+
+  if (result.count("expand")) {
+    int expand = result["expand"].as<int>();
+    if (expand >= 0 && expand <= 16) {
+      covering.Expand(expand);
+    }
+  }
+
+  if (!jsonOutput) {
+    cout << "Query cells: " << covering.cell_ids().size() << endl;
+  }
+
+  MDB_env* env = db::createEnv(result["osmx"].as<string>(),false);
+  MDB_txn* txn;
+  CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
+
+  db::Metadata metadata(txn);
+  auto timestamp = metadata.get("osmosis_replication_timestamp");
+  prog.timestamp = timestamp;
+  if (!jsonOutput) {
+    cout << "Snapshot timestamp is " << prog.timestamp  << endl;
+  }
+
+
+  Roaring64Map node_ids;
+  Roaring64Map way_ids;
+  Roaring64Map relation_ids;
+  entitiesForRegion(txn,covering,node_ids,way_ids,relation_ids, jsonOutput, prog);
 
   // start Write
 
@@ -340,6 +331,7 @@ void cmdExtract(int argc, char * argv[]) {
     
     // Writing ways pass
     {
+      db::Elements ways(txn,"ways");  
       for (auto way_id : way_ids) {
         section.tick();
         auto reader = ways.getReader(way_id);
@@ -377,6 +369,7 @@ void cmdExtract(int argc, char * argv[]) {
     }
 
     {
+      db::Elements relations(txn,"relations");
       for (auto relation_id : relation_ids) {
         section.tick();
         auto reader = relations.getReader(relation_id);
