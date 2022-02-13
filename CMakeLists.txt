@@ -54,6 +54,13 @@ target_link_libraries(osmxTest s2)
 enable_testing()
 add_test(osmxTest osmxTest)
 
+add_executable (osmx-features features/main.cpp)
+set_property(TARGET osmx-features PROPERTY CXX_STANDARD 14)
+target_link_libraries(osmx-features ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb/liblmdb.a)
+target_link_libraries(osmx-features z bz2 s2 roaring osmx-static)
+target_link_libraries(osmx-features ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/capnp/libcapnp.a)
+target_link_libraries(osmx-features ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/kj/libkj.a)
+
 install(TARGETS osmx DESTINATION bin)
 add_custom_target(archive COMMAND dist/archive.sh ${OSMX_VERSION} ${CMAKE_SYSTEM_NAME})
 add_dependencies(archive osmx)
