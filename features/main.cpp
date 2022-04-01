@@ -1,5 +1,6 @@
 #include <vector>
 #include <iomanip>
+#include <fstream>
 #include "osmx/storage.h"
 #include "osmx/extract.h"
 #include "s2/s2latlng.h"
@@ -9,6 +10,8 @@
 #include "nlohmann/json.hpp"
 #include "osmium/area/assembler.hpp"
 #include "osmium/osm/way.hpp"
+#include "cpp/feature_generated.h"
+#include "cpp/header_generated.h"
 
 using namespace std;
 
@@ -47,17 +50,87 @@ int main(int argc, char* argv[]) {
   entitiesForRegion(txn,covering,node_ids,way_ids,relation_ids, false, prog);
 
   // start multithreaded part
+
+  char rs{ 30 };
+  // fgb
+  flatbuffers::FlatBufferBuilder fbBuilder;
+  std::ofstream ofile("output.fgb", std::ios::binary);
+  uint8_t magicbytes[] = { 0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00 };
+  ofile.write((char *)magicbytes,sizeof(magicbytes));
+  std::vector<double> envelope = {-180,-90,180,90};
+
+  std::vector<flatbuffers::Offset<FlatGeobuf::Column>> headerColumns;
+  headerColumns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String));
+  auto phColumns = headerColumns.size() == 0 ? nullptr : &headerColumns;
+
+  auto header = FlatGeobuf::CreateHeaderDirect(fbBuilder, "test dataset", &envelope, FlatGeobuf::GeometryType::Unknown, false, false, false, false, phColumns, 0, 0, 0);
+  fbBuilder.FinishSizePrefixed(header);
+  ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+  fbBuilder.Clear();
+
   osmium::area::AssemblerConfig config;
   config.ignore_invalid_locations = true;
-
   osmx::db::Locations locations(txn);
+  osmx::db::Elements nodes(txn,"nodes");
+  {
+    for (auto node_id : node_ids) {
+      if (!nodes.exists(node_id)) {
+        continue; // it is an untagged node, ignore
+      }
+      auto message = nodes.getReader(node_id);
+      auto node = message.getRoot<Node>();
+      auto location = locations.get(node_id);
+      auto tags = node.getTags();
+
+      // fgb 
+      std::vector<double> coords_vector = { location.coords.lon(), location.coords.lat() };
+      auto geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Point);
+
+
+      std::vector<uint8_t> properties;
+      std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
+      for (int i = 0; i < tags.size() / 2; i++) {
+        // props[tags[i*2]] = tags[i*2+1].cStr();
+      }
+      const uint16_t column_index = 0;
+      std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
+      const std::string str = "value2";
+      uint32_t len = static_cast<uint32_t>(str.length());
+      std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
+      std::copy(str.begin(), str.end(), std::back_inserter(properties));
+
+      // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
+
+
+      auto pProperties = properties.size() == 0 ? nullptr : &properties;
+      auto pColumns = columns.size() == 0 ? nullptr : &columns;
+
+      auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, pColumns);
+      fbBuilder.FinishSizePrefixed(feature);
+      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      fbBuilder.Clear();
+
+      // geojson
+      // nlohmann::json j;
+      // j["type"] = "Feature";
+      // nlohmann::json props;
+      // for (int i = 0; i < tags.size() / 2; i++) {
+      //   props[tags[i*2]] = tags[i*2+1].cStr();
+      // }
+      // j["properties"] = props;
+
+      // nlohmann::json geom_obj;
+      // geom_obj["type"] = "Point";
+      // geom_obj["coordinates"] = { location.coords.lon(), location.coords.lat() };
+      // j["geometry"] = geom_obj;
+      // cout << rs << j.dump() << endl;
+
+    }
+  }
 
   osmx::db::Elements ways(txn,"ways");
   {
-    osmium::memory::Buffer buffer1{0,osmium::memory::Buffer::auto_grow::yes};
-    osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
     for (auto way_id : way_ids) {
-      // Fetch a Way element by ID.
       auto message = ways.getReader(way_id);
       auto way = message.getRoot<Way>();
 
@@ -75,47 +148,51 @@ int main(int argc, char* argv[]) {
       
       // nlohmann::json coordinates = nlohmann::json::array();
 
-      auto nodes = way.getNodes();
+      // auto nodes = way.getNodes();
       // for (int i = 0; i < nodes.size(); i++) {
       //   auto location = locations.get(nodes[i]);
       //   coordinates.push_back({location.coords.lon(),location.coords.lat()});
       // }
-      if (nodes[0] != nodes[nodes.size()-1]) continue;
+      // if (nodes[0] != nodes[nodes.size()-1]) continue;
 
-      {
-        osmium::builder::WayBuilder way_builder{buffer1};
-        way_builder.set_id(way_id);
+      // osmium::memory::Buffer buffer1{0,osmium::memory::Buffer::auto_grow::yes};
+      // osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
 
-        {
-          osmium::builder::WayNodeListBuilder way_node_list_builder{way_builder};
-          for (auto node_id : way.getNodes()) {
-            way_node_list_builder.add_node_ref(node_id);
-          }
-        }
+      // {
+      //   osmium::builder::WayBuilder way_builder{buffer1};
+      //   way_builder.set_id(way_id);
 
-        auto tags = way.getTags();
-        osmium::builder::TagListBuilder tag_builder{way_builder};
-        for (int i = 0; i < tags.size() / 2; i++) {
-          tag_builder.add_tag(tags[i*2],tags[i*2+1]);
-        }
-      }
+      //   {
+      //     osmium::builder::WayNodeListBuilder way_node_list_builder{way_builder};
+      //     for (auto node_id : way.getNodes()) {
+      //       way_node_list_builder.add_node_ref(node_id);
+      //     }
+      //   }
 
-      auto &way_obj = buffer1.get<osmium::Way>(0);
+      //   auto tags = way.getTags();
+      //   osmium::builder::TagListBuilder tag_builder{way_builder};
+      //   for (int i = 0; i < tags.size() / 2; i++) {
+      //     tag_builder.add_tag(tags[i*2],tags[i*2+1]);
+      //   }
+      // }
 
-      for (auto& node_ref : way_obj.nodes()) {
-          auto location = locations.get(node_ref.ref());
-          node_ref.set_location(location.coords);
-      }
+      // auto &way_obj = buffer1.get<osmium::Way>(0);
 
-      osmium::area::Assembler a{config};
-      a(way_obj,buffer2);
+      // for (auto& node_ref : way_obj.nodes()) {
+      //     auto location = locations.get(node_ref.ref());
+      //     node_ref.set_location(location.coords);
+      // }
+
+      // osmium::area::Assembler a{config};
+      // a(way_obj,buffer2);
+      // buffer1.clear();
+      // buffer2.clear();
 
       // geometry["coordinates"] = coordinates;
       // j["geometry"] = geometry;
-      // cout << j.dump() << endl;
+      // cout << rs << j.dump() << endl;
 
-      buffer1.clear();
-      buffer2.clear();
+
     }
   }
 
@@ -134,7 +211,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (!is_multipolygon) continue;
-    cout << "Rel " << relation_id << endl;
+    // cout << "Rel " << relation_id << endl;
 
     osmium::memory::Buffer buffer1{0,osmium::memory::Buffer::auto_grow::yes};
 
@@ -188,10 +265,11 @@ int main(int argc, char* argv[]) {
     osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
     if (a(relation_obj,members,buffer2)) {
       auto const &result = buffer2.get<osmium::Area>(0);
-      cout << result.id() << endl;
-      cout << "outer: " << get<0>(result.num_rings()) << " inner: " << get<1>(result.num_rings()) << endl;
+      // cout << result.id() << endl;
+      // cout << "outer: " << get<0>(result.num_rings()) << " inner: " << get<1>(result.num_rings()) << endl;
     }
   }
 
+  ofile.flush();
   mdb_env_close(env); // close the database.
 }
