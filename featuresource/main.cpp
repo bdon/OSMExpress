@@ -7,7 +7,7 @@
 #include "s2/s2region_coverer.h"
 #include "s2/s2latlng_rect.h"
 #include "roaring64map.hh"
-#include "nlohmann/json.hpp"
+// #include "nlohmann/json.hpp"
 #include "osmium/area/assembler.hpp"
 #include "osmium/osm/way.hpp"
 #include "flatgeobuf/feature_generated.h"
@@ -20,12 +20,26 @@ using namespace std;
 // see way_wkt for a simpler example.
 // Usage: ./bbox_wkt OSMX_FILE MIN_LON MIN_LAT MAX_LON MAX_LAT
 
+bool is_area(const capnp::List<capnp::Text,capnp::Kind::BLOB>::Reader &tags) {
+  for (int i = 0; i < tags.size() / 2; i++) {
+    if (tags[i] == "building" && tags[i+1] == "yes") {
+      return true;
+    }
+  }
+  return false;
+}
+
+vector<string> columns = {"name","name:en","building","highway","amenity","natural","landuse","waterway","height","ref"};
+
 int main(int argc, char* argv[]) {
+
   vector<string> args(argv, argv+argc);
 
   MDB_env* env = osmx::db::createEnv(args[1]);
   MDB_txn* txn;
   CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
+
+
 
   // Create a S2LatLngRect.
   auto lo = S2LatLng::FromDegrees(stof(args[3]),stof(args[2]));
@@ -49,7 +63,16 @@ int main(int argc, char* argv[]) {
   ExportProgress prog;
   entitiesForRegion(txn,covering,node_ids,way_ids,relation_ids, false, prog);
 
+  // output (file | stdout)
+  // first do a bounding box pass and degeneracy check to determine a exact total # of features
+  // create a vector of FlatGeobuf::NodeItem where the offset points to (nodes) (ways) (relations);
+
+
+
   // start multithreaded part
+
+  std::unordered_map<string,uint16_t> keyToCol;
+
 
   char rs{ 30 };
   // fgb
@@ -60,8 +83,18 @@ int main(int argc, char* argv[]) {
   std::vector<double> envelope = {-180,-90,180,90};
 
   std::vector<flatbuffers::Offset<FlatGeobuf::Column>> headerColumns;
-  headerColumns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String));
+
+  for (int i = 0; i < columns.size(); i++) {
+    keyToCol.insert({columns[i],i});
+    headerColumns.push_back(CreateColumnDirect(fbBuilder, columns[i].c_str(), FlatGeobuf::ColumnType::String));
+  }
+
   auto phColumns = headerColumns.size() == 0 ? nullptr : &headerColumns;
+
+  // 1. compute all relevant OSM Entities
+  // 2. Iterate through all OSM Entity records, sorting by bounding box and 
+  // compute all keys and their types
+  // compute the bounding boxes and regions
 
   auto header = FlatGeobuf::CreateHeaderDirect(fbBuilder, "test dataset", &envelope, FlatGeobuf::GeometryType::Unknown, false, false, false, false, phColumns, 0, 0, 0);
   fbBuilder.FinishSizePrefixed(header);
@@ -86,26 +119,26 @@ int main(int argc, char* argv[]) {
       std::vector<double> coords_vector = { location.coords.lon(), location.coords.lat() };
       auto geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Point);
 
-
       std::vector<uint8_t> properties;
-      std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
+      // std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
       for (int i = 0; i < tags.size() / 2; i++) {
-        // props[tags[i*2]] = tags[i*2+1].cStr();
+        if (keyToCol.count(tags[i*2].cStr()) > 0) {
+          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
+          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
+          const std::string str = tags[i*2+1].cStr();
+          uint32_t len = static_cast<uint32_t>(str.length());
+          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
+          std::copy(str.begin(), str.end(), std::back_inserter(properties));
+        }
       }
-      const uint16_t column_index = 0;
-      std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
-      const std::string str = "value2";
-      uint32_t len = static_cast<uint32_t>(str.length());
-      std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
-      std::copy(str.begin(), str.end(), std::back_inserter(properties));
 
+      // for schemaless
       // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
 
-
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
-      auto pColumns = columns.size() == 0 ? nullptr : &columns;
+      // auto pColumns = columns.size() == 0 ? nullptr : &columns;
 
-      auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, pColumns);
+      auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
       ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
       fbBuilder.Clear();
@@ -124,7 +157,6 @@ int main(int argc, char* argv[]) {
       // geom_obj["coordinates"] = { location.coords.lon(), location.coords.lat() };
       // j["geometry"] = geom_obj;
       // cout << rs << j.dump() << endl;
-
     }
   }
 
@@ -133,6 +165,49 @@ int main(int argc, char* argv[]) {
     for (auto way_id : way_ids) {
       auto message = ways.getReader(way_id);
       auto way = message.getRoot<Way>();
+      auto tags = way.getTags();
+
+      std::vector<double> coords_vector;
+
+      FlatGeobuf::GeometryType geom_type = FlatGeobuf::GeometryType::LineString;
+      if (is_area(tags)) {
+        geom_type = FlatGeobuf::GeometryType::Polygon;
+      }
+
+
+      auto nodes = way.getNodes();
+      for (int i = 0; i < nodes.size(); i++) {
+        auto location = locations.get(nodes[i]);
+        coords_vector.push_back(location.coords.lon());
+        coords_vector.push_back(location.coords.lat());
+      }
+
+      auto geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, &coords_vector, nullptr, nullptr, nullptr, nullptr, geom_type);
+
+      std::vector<uint8_t> properties;
+      // std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
+      for (int i = 0; i < tags.size() / 2; i++) {
+        if (keyToCol.count(tags[i*2].cStr()) > 0) {
+          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
+          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
+          const std::string str = tags[i*2+1].cStr();
+          uint32_t len = static_cast<uint32_t>(str.length());
+          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
+          std::copy(str.begin(), str.end(), std::back_inserter(properties));
+        }
+      }
+
+      // for schemaless
+      // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
+
+      auto pProperties = properties.size() == 0 ? nullptr : &properties;
+      // auto pColumns = columns.size() == 0 ? nullptr : &columns;
+
+      auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
+      fbBuilder.FinishSizePrefixed(feature);
+      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      fbBuilder.Clear();
+
 
       // nlohmann::json props;
       // auto tags = way.getTags();
@@ -263,11 +338,81 @@ int main(int argc, char* argv[]) {
     osmium::area::Assembler a{config};
 
     osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
-    if (a(relation_obj,members,buffer2)) {
+    if (a(relation_obj,members,buffer2)) { // ASSEMBLE SUCCESS
       auto const &result = buffer2.get<osmium::Area>(0);
-      // cout << result.id() << endl;
-      // cout << "outer: " << get<0>(result.num_rings()) << " inner: " << get<1>(result.num_rings()) << endl;
-    }
+
+      flatbuffers::Offset<FlatGeobuf::Geometry> geometry;
+
+
+      // if it has 1 outer ring, it is a Polygon
+      if (get<0>(result.num_rings()) == 1) {
+
+        std::vector<uint32_t> ends_vector;
+        std::vector<double> coords_vector;
+        for (auto const &outer_ring : result.outer_rings()) {
+          for (auto const coord : outer_ring) {
+            coords_vector.push_back(coord.lon());
+            coords_vector.push_back(coord.lat());
+          }
+          ends_vector.push_back(coords_vector.size()/2);
+
+          for (auto const &inner_ring : result.inner_rings(outer_ring)) {
+            for (auto const coord : inner_ring) {
+              coords_vector.push_back(coord.lon());
+              coords_vector.push_back(coord.lat());
+            }
+            ends_vector.push_back(coords_vector.size()/2);
+          }
+        }
+        geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
+
+
+      } else {
+        // ------------ MORE THAN ONE OUTER RING ---------------
+        // if it has more than 1 outer ring, it is a MultiPolygon
+
+        std::vector<flatbuffers::Offset<FlatGeobuf::Geometry>> parts;
+        for (auto const &outer_ring : result.outer_rings()) {
+          std::vector<uint32_t> ends_vector;
+          std::vector<double> coords_vector;
+          for (auto const coord : outer_ring) {
+            coords_vector.push_back(coord.lon());
+            coords_vector.push_back(coord.lat());
+          }
+          ends_vector.push_back(coords_vector.size()/2);
+
+
+          for (auto const &inner_ring : result.inner_rings(outer_ring)) {
+            for (auto const coord : inner_ring) {
+              coords_vector.push_back(coord.lon());
+              coords_vector.push_back(coord.lat());
+            }
+            ends_vector.push_back(coords_vector.size()/2);
+          }
+          auto geom_part = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
+          parts.push_back(geom_part);
+        }
+        geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::MultiPolygon, &parts);
+      }
+
+      std::vector<uint8_t> properties;
+      for (int i = 0; i < tags.size() / 2; i++) {
+        if (keyToCol.count(tags[i*2].cStr()) > 0) {
+          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
+          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
+          const std::string str = tags[i*2+1].cStr();
+          uint32_t len = static_cast<uint32_t>(str.length());
+          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
+          std::copy(str.begin(), str.end(), std::back_inserter(properties));
+        }
+      }
+      auto pProperties = properties.size() == 0 ? nullptr : &properties;
+
+      auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
+      fbBuilder.FinishSizePrefixed(feature);
+      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      fbBuilder.Clear();
+    } // END ASSEMBLE SUCCESS
   }
 
   ofile.flush();
