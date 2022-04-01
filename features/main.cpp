@@ -10,8 +10,8 @@
 #include "nlohmann/json.hpp"
 #include "osmium/area/assembler.hpp"
 #include "osmium/osm/way.hpp"
-#include "cpp/feature_generated.h"
-#include "cpp/header_generated.h"
+#include "flatgeobuf/feature_generated.h"
+#include "flatgeobuf/header_generated.h"
 
 using namespace std;
 
