@@ -14,6 +14,7 @@ a.out
 *.osc.gz
 __pycache__
 /osmx
+/osmx-featuresource
 *.dylib
 Testing/
 compile_commands.json
