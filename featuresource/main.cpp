@@ -57,8 +57,6 @@ int main(int argc, char* argv[]) {
   MDB_txn* txn;
   CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
 
-
-
   // Create a S2LatLngRect.
   auto lo = S2LatLng::FromDegrees(stof(args[3]),stof(args[2]));
   auto hi = S2LatLng::FromDegrees(stof(args[5]),stof(args[4]));
@@ -81,23 +79,20 @@ int main(int argc, char* argv[]) {
   ExportProgress prog;
   entitiesForRegion(txn,covering,node_ids,way_ids,relation_ids, false, prog);
 
-  // output (file | stdout)
-  // first do a bounding box pass and degeneracy check to determine a exact total # of features
-  // create a vector of FlatGeobuf::NodeItem where the offset points to (nodes) (ways) (relations);
-
-
-
   // start multithreaded part
 
   std::unordered_map<string,uint16_t> keyToCol;
 
-
   char rs{ 30 };
   // fgb
   flatbuffers::FlatBufferBuilder fbBuilder;
-  std::ofstream ofile("output.fgb", std::ios::binary);
+
+  unique_ptr<ostream> out;
+
+  // out = make_unique<std::ostream>(std::cout.rdbuf());
+  out = make_unique<std::ofstream>("output.fgb", std::ios::binary);
   uint8_t magicbytes[] = { 0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00 };
-  ofile.write((char *)magicbytes,sizeof(magicbytes));
+  out->write((char *)magicbytes,sizeof(magicbytes));
   std::vector<double> envelope = {-180,-90,180,90};
 
   std::vector<flatbuffers::Offset<FlatGeobuf::Column>> headerColumns;
@@ -106,17 +101,14 @@ int main(int argc, char* argv[]) {
     keyToCol.insert({columns[i],i});
     headerColumns.push_back(CreateColumnDirect(fbBuilder, columns[i].c_str(), FlatGeobuf::ColumnType::String));
   }
-
   auto phColumns = headerColumns.size() == 0 ? nullptr : &headerColumns;
 
   // 1. compute all relevant OSM Entities
-  // 2. Iterate through all OSM Entity records, sorting by bounding box and 
   // compute all keys and their types
-  // compute the bounding boxes and regions
 
   auto header = FlatGeobuf::CreateHeaderDirect(fbBuilder, "test dataset", &envelope, FlatGeobuf::GeometryType::Unknown, false, false, false, false, phColumns, 0, 0, 0);
   fbBuilder.FinishSizePrefixed(header);
-  ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+  out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
   fbBuilder.Clear();
 
   osmium::area::AssemblerConfig config;
@@ -140,7 +132,7 @@ int main(int argc, char* argv[]) {
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
-      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
       fbBuilder.Clear();
 
       // geojson
@@ -174,7 +166,6 @@ int main(int argc, char* argv[]) {
         geom_type = FlatGeobuf::GeometryType::Polygon;
       }
 
-
       auto nodes = way.getNodes();
       for (int i = 0; i < nodes.size(); i++) {
         auto location = locations.get(nodes[i]);
@@ -187,7 +178,7 @@ int main(int argc, char* argv[]) {
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
-      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
       fbBuilder.Clear();
 
       // nlohmann::json props;
@@ -247,8 +238,6 @@ int main(int argc, char* argv[]) {
       // geometry["coordinates"] = coordinates;
       // j["geometry"] = geometry;
       // cout << rs << j.dump() << endl;
-
-
     }
   }
 
@@ -347,7 +336,6 @@ int main(int argc, char* argv[]) {
         }
         geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
 
-
       } else {
         // ------------ MORE THAN ONE OUTER RING ---------------
         // if it has more than 1 outer ring, it is a MultiPolygon
@@ -361,7 +349,6 @@ int main(int argc, char* argv[]) {
             coords_vector.push_back(coord.lat());
           }
           ends_vector.push_back(coords_vector.size()/2);
-
 
           for (auto const &inner_ring : result.inner_rings(outer_ring)) {
             for (auto const coord : inner_ring) {
@@ -381,11 +368,11 @@ int main(int argc, char* argv[]) {
 
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
-      ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+      out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
       fbBuilder.Clear();
     } // END ASSEMBLE SUCCESS
   }
 
-  ofile.flush();
+  out->flush();
   mdb_env_close(env); // close the database.
 }
