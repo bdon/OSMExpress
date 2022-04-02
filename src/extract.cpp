@@ -127,7 +127,7 @@ void entitiesForRegion(MDB_txn *txn, S2CellUnion &covering, Roaring64Map &node_i
     }
   }
 
-  if (!jsonOutput) cout << "Relations: " << relation_ids.cardinality() << endl;
+  if (!jsonOutput) cerr << "Relations: " << relation_ids.cardinality() << endl;
   db::Elements ways(txn,"ways");
   db::Elements relations(txn,"relations");
 
@@ -150,7 +150,7 @@ void entitiesForRegion(MDB_txn *txn, S2CellUnion &covering, Roaring64Map &node_i
     }
   }
 
-  if (!jsonOutput) cout << "Ways: " << way_ids.cardinality() << endl;
+  if (!jsonOutput) cerr << "Ways: " << way_ids.cardinality() << endl;
 
   // make it Way-complete: go through all Ways and add in any missing Nodes.
 
@@ -164,7 +164,7 @@ void entitiesForRegion(MDB_txn *txn, S2CellUnion &covering, Roaring64Map &node_i
     }
   }
 
-  if (!jsonOutput) cout << "Nodes: " << node_ids.cardinality() << endl;
+  if (!jsonOutput) cerr << "Nodes: " << node_ids.cardinality() << endl;
 }
 
 // must be --bbox, --disc, --poly or --json
