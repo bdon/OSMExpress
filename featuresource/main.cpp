@@ -29,6 +29,24 @@ bool is_area(const capnp::List<capnp::Text,capnp::Kind::BLOB>::Reader &tags) {
   return false;
 }
 
+std::vector<uint8_t> tagsToProperties(const std::unordered_map<string,uint16_t> &keyToCol, const capnp::List<capnp::Text,capnp::Kind::BLOB>::Reader &tags) {
+  // for schemaless
+  // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
+  std::vector<uint8_t> properties;
+  // std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
+  for (int i = 0; i < tags.size() / 2; i++) {
+    if (keyToCol.count(tags[i*2].cStr()) > 0) {
+      const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
+      std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
+      const std::string str = tags[i*2+1].cStr();
+      uint32_t len = static_cast<uint32_t>(str.length());
+      std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
+      std::copy(str.begin(), str.end(), std::back_inserter(properties));
+    }
+  }
+  return properties;
+}
+
 vector<string> columns = {"name","name:en","building","highway","amenity","natural","landuse","waterway","height","ref"};
 
 int main(int argc, char* argv[]) {
@@ -115,29 +133,11 @@ int main(int argc, char* argv[]) {
       auto location = locations.get(node_id);
       auto tags = node.getTags();
 
-      // fgb 
       std::vector<double> coords_vector = { location.coords.lon(), location.coords.lat() };
       auto geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Point);
 
-      std::vector<uint8_t> properties;
-      // std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
-      for (int i = 0; i < tags.size() / 2; i++) {
-        if (keyToCol.count(tags[i*2].cStr()) > 0) {
-          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
-          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
-          const std::string str = tags[i*2+1].cStr();
-          uint32_t len = static_cast<uint32_t>(str.length());
-          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
-          std::copy(str.begin(), str.end(), std::back_inserter(properties));
-        }
-      }
-
-      // for schemaless
-      // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
-
+      std::vector<uint8_t> properties = tagsToProperties(keyToCol,tags);
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
-      // auto pColumns = columns.size() == 0 ? nullptr : &columns;
-
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
       ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
@@ -183,31 +183,12 @@ int main(int argc, char* argv[]) {
       }
 
       auto geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, &coords_vector, nullptr, nullptr, nullptr, nullptr, geom_type);
-
-      std::vector<uint8_t> properties;
-      // std::vector<flatbuffers::Offset<FlatGeobuf::Column>> columns;
-      for (int i = 0; i < tags.size() / 2; i++) {
-        if (keyToCol.count(tags[i*2].cStr()) > 0) {
-          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
-          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
-          const std::string str = tags[i*2+1].cStr();
-          uint32_t len = static_cast<uint32_t>(str.length());
-          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
-          std::copy(str.begin(), str.end(), std::back_inserter(properties));
-        }
-      }
-
-      // for schemaless
-      // columns.push_back(CreateColumnDirect(fbBuilder, "key", FlatGeobuf::ColumnType::String, nullptr, nullptr, 6));
-
+      std::vector<uint8_t> properties = tagsToProperties(keyToCol,tags);
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
-      // auto pColumns = columns.size() == 0 ? nullptr : &columns;
-
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
       fbBuilder.FinishSizePrefixed(feature);
       ofile.write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
       fbBuilder.Clear();
-
 
       // nlohmann::json props;
       // auto tags = way.getTags();
@@ -395,17 +376,7 @@ int main(int argc, char* argv[]) {
         geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::MultiPolygon, &parts);
       }
 
-      std::vector<uint8_t> properties;
-      for (int i = 0; i < tags.size() / 2; i++) {
-        if (keyToCol.count(tags[i*2].cStr()) > 0) {
-          const uint16_t column_index = keyToCol.at(tags[i*2].cStr());
-          std::copy(reinterpret_cast<const uint8_t *>(&column_index), reinterpret_cast<const uint8_t *>(&column_index + 1), std::back_inserter(properties));
-          const std::string str = tags[i*2+1].cStr();
-          uint32_t len = static_cast<uint32_t>(str.length());
-          std::copy(reinterpret_cast<const uint8_t *>(&len), reinterpret_cast<const uint8_t *>(&len + 1), std::back_inserter(properties));
-          std::copy(str.begin(), str.end(), std::back_inserter(properties));
-        }
-      }
+      std::vector<uint8_t> properties = tagsToProperties(keyToCol,tags);
       auto pProperties = properties.size() == 0 ? nullptr : &properties;
 
       auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
