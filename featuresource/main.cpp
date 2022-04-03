@@ -22,7 +22,10 @@ using namespace std;
 
 bool is_area(const capnp::List<capnp::Text,capnp::Kind::BLOB>::Reader &tags) {
   for (int i = 0; i < tags.size() / 2; i++) {
-    if (tags[i] == "building" && tags[i+1] == "yes") {
+    if (tags[i] == "building" && tags[i+1] != "no") {
+      return true;
+    }
+    if (tags[i] == "area" && tags[i+1] == "yes") {
       return true;
     }
   }
