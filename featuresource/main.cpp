@@ -60,9 +60,14 @@ int main(int argc, char* argv[]) {
   MDB_txn* txn;
   CHECK(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
 
+
+  double min_x = stof(args[2]);
+  double min_y = stof(args[3]);
+  double max_x = stof(args[4]);
+  double max_y = stof(args[5]);
   // Create a S2LatLngRect.
-  auto lo = S2LatLng::FromDegrees(stof(args[3]),stof(args[2]));
-  auto hi = S2LatLng::FromDegrees(stof(args[5]),stof(args[4]));
+  auto lo = S2LatLng::FromDegrees(min_y,min_x);
+  auto hi = S2LatLng::FromDegrees(max_y,max_x);
   auto bbox = S2LatLngRect{lo,hi};
 
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -98,7 +103,7 @@ int main(int argc, char* argv[]) {
   out = make_unique<std::ofstream>("output.fgb", std::ios::binary);
   uint8_t magicbytes[] = { 0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00 };
   out->write((char *)magicbytes,sizeof(magicbytes));
-  std::vector<double> envelope = {-180,-90,180,90};
+  std::vector<double> envelope = {min_x,min_y,max_x,max_y};
 
   std::vector<flatbuffers::Offset<FlatGeobuf::Column>> headerColumns;
 
@@ -111,7 +116,9 @@ int main(int argc, char* argv[]) {
   // 1. compute all relevant OSM Entities
   // compute all keys and their types
 
-  auto header = FlatGeobuf::CreateHeaderDirect(fbBuilder, "test dataset", &envelope, FlatGeobuf::GeometryType::Unknown, false, false, false, false, phColumns, 0, 0, 0);
+  auto crs = FlatGeobuf::CreateCrsDirect(fbBuilder,nullptr,4326);
+
+  auto header = FlatGeobuf::CreateHeaderDirect(fbBuilder, "test dataset", &envelope, FlatGeobuf::GeometryType::Unknown, false, false, false, false, phColumns, 0, 0, crs);
   fbBuilder.FinishSizePrefixed(header);
   out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
   fbBuilder.Clear();
