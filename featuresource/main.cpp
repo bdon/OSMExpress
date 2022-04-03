@@ -65,6 +65,8 @@ int main(int argc, char* argv[]) {
   auto hi = S2LatLng::FromDegrees(stof(args[5]),stof(args[4]));
   auto bbox = S2LatLngRect{lo,hi};
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   // Find the cell covering for the LatLngRect,
   // with a maximum cell level of 16.
   // Although nodes in the database are stored at level=16,
@@ -378,4 +380,7 @@ int main(int argc, char* argv[]) {
 
   out->flush();
   mdb_env_close(env); // close the database.
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::high_resolution_clock::now() - startTime ).count();
+  cerr << "Finished featuresource in " << duration/1000.0 << " seconds." << endl;
 }
