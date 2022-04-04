@@ -62,6 +62,18 @@ target_link_libraries(osmx-featuresource z bz2 s2 roaring osmx-static)
 target_link_libraries(osmx-featuresource ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/capnp/libcapnp.a)
 target_link_libraries(osmx-featuresource ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/kj/libkj.a)
 
+add_executable (dummy featuresource/dummy.cpp)
+set_property(TARGET dummy PROPERTY CXX_STANDARD 14)
+include_directories(featuresource)
+
+add_executable (osmx-protoshapes featuresource/protoshapes.cpp)
+set_property(TARGET osmx-protoshapes PROPERTY CXX_STANDARD 14)
+include_directories(featuresource)
+target_link_libraries(osmx-protoshapes s2 roaring osmx-static)
+target_link_libraries(osmx-protoshapes ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb/liblmdb.a)
+target_link_libraries(osmx-protoshapes ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/capnp/libcapnp.a)
+target_link_libraries(osmx-protoshapes ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/kj/libkj.a)
+
 install(TARGETS osmx DESTINATION bin)
 add_custom_target(archive COMMAND dist/archive.sh ${OSMX_VERSION} ${CMAKE_SYSTEM_NAME})
 add_dependencies(archive osmx)
