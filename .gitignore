@@ -16,7 +16,9 @@ __pycache__
 /osmx
 /osmx-featuresource
 *.dylib
+*.a
 Testing/
 compile_commands.json
 install_manifest.txt
 dist/*.tgz
+*.fgb
