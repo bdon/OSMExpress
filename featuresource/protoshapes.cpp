@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  cout << "Columns: " << columns.size() << endl;
+  cerr << "Columns: " << columns.size() << endl;
 
   flatbuffers::FlatBufferBuilder fbBuilder;
   unique_ptr<ostream> out;
@@ -109,6 +109,9 @@ int main(int argc, char* argv[]) {
   out = make_unique<std::ofstream>(args[2], std::ios::binary);
   uint8_t magicbytes[] = { 0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00 };
   out->write((char *)magicbytes,sizeof(magicbytes));
+
+
+  // TODO make this automatic
   std::vector<double> envelope = {-180,-90,180,90};
 
   std::vector<flatbuffers::Offset<FlatGeobuf::Column>> headerColumns;
@@ -146,6 +149,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    bool is_complete = true;
     if (is_boundary) {
       uint64_t relation_id = *((uint64_t *)key.mv_data);
       osmium::memory::Buffer buffer1{0,osmium::memory::Buffer::auto_grow::yes};
@@ -167,6 +171,10 @@ int main(int argc, char* argv[]) {
           {
             osmium::builder::WayBuilder way_builder{buffer1};
             way_builder.set_id(way_id);
+            if (!ways.exists(way_id)) {
+              is_complete = false;
+              break;
+            }
             auto message = ways.getReader(way_id);
             auto way = message.getRoot<Way>();
             {
@@ -179,85 +187,90 @@ int main(int argc, char* argv[]) {
           buffer1.commit();
         }
       }
-      vector<const osmium::Way*> members;
-      members.reserve(relation.getMembers().size());
 
-      // find all pointers into Ways, populate the locations
-      for (auto& way_obj : buffer1.select<osmium::Way>()) {
-        for (auto& node_ref : way_obj.nodes()) {
-            auto location = locations.get(node_ref.ref());
-            node_ref.set_location(location.coords);
-        }
-        members.push_back(&way_obj);
-      }
+      if (is_complete) {
 
-      auto &relation_obj = buffer1.get<osmium::Relation>(0);
+        vector<const osmium::Way*> members;
+        members.reserve(relation.getMembers().size());
 
-      osmium::area::Assembler a{config};
-
-      osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
-      if (a(relation_obj,members,buffer2)) { // ASSEMBLE SUCCESS
-        auto const &result = buffer2.get<osmium::Area>(0);
-
-        flatbuffers::Offset<FlatGeobuf::Geometry> geometry;
-
-        // if it has 1 outer ring, it is a Polygon
-        if (get<0>(result.num_rings()) == 1) {
-
-          std::vector<uint32_t> ends_vector;
-          std::vector<double> coords_vector;
-          for (auto const &outer_ring : result.outer_rings()) {
-            for (auto const coord : outer_ring) {
-              coords_vector.push_back(coord.lon());
-              coords_vector.push_back(coord.lat());
-            }
-            ends_vector.push_back(coords_vector.size()/2);
-
-            for (auto const &inner_ring : result.inner_rings(outer_ring)) {
-              for (auto const coord : inner_ring) {
-                coords_vector.push_back(coord.lon());
-                coords_vector.push_back(coord.lat());
-              }
-              ends_vector.push_back(coords_vector.size()/2);
-            }
+        // find all pointers into Ways, populate the locations
+        for (auto& way_obj : buffer1.select<osmium::Way>()) {
+          for (auto& node_ref : way_obj.nodes()) {
+              auto location = locations.get(node_ref.ref());
+              node_ref.set_location(location.coords);
           }
-          geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
+          members.push_back(&way_obj);
+        }
 
-        } else {
-          // ------------ MORE THAN ONE OUTER RING ---------------
-          // if it has more than 1 outer ring, it is a MultiPolygon
+        auto &relation_obj = buffer1.get<osmium::Relation>(0);
 
-          std::vector<flatbuffers::Offset<FlatGeobuf::Geometry>> parts;
-          for (auto const &outer_ring : result.outer_rings()) {
+        osmium::area::Assembler a{config};
+
+        osmium::memory::Buffer buffer2{0,osmium::memory::Buffer::auto_grow::yes};
+        if (a(relation_obj,members,buffer2)) { // ASSEMBLE SUCCESS
+          auto const &result = buffer2.get<osmium::Area>(0);
+
+          flatbuffers::Offset<FlatGeobuf::Geometry> geometry;
+
+          // if it has 1 outer ring, it is a Polygon
+          if (get<0>(result.num_rings()) == 1) {
+
             std::vector<uint32_t> ends_vector;
             std::vector<double> coords_vector;
-            for (auto const coord : outer_ring) {
-              coords_vector.push_back(coord.lon());
-              coords_vector.push_back(coord.lat());
-            }
-            ends_vector.push_back(coords_vector.size()/2);
-
-            for (auto const &inner_ring : result.inner_rings(outer_ring)) {
-              for (auto const coord : inner_ring) {
+            for (auto const &outer_ring : result.outer_rings()) {
+              for (auto const coord : outer_ring) {
                 coords_vector.push_back(coord.lon());
                 coords_vector.push_back(coord.lat());
               }
               ends_vector.push_back(coords_vector.size()/2);
+
+              for (auto const &inner_ring : result.inner_rings(outer_ring)) {
+                for (auto const coord : inner_ring) {
+                  coords_vector.push_back(coord.lon());
+                  coords_vector.push_back(coord.lat());
+                }
+                ends_vector.push_back(coords_vector.size()/2);
+              }
             }
-            auto geom_part = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
-            parts.push_back(geom_part);
+            geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
+
+          } else {
+            // ------------ MORE THAN ONE OUTER RING ---------------
+            // if it has more than 1 outer ring, it is a MultiPolygon
+
+            std::vector<flatbuffers::Offset<FlatGeobuf::Geometry>> parts;
+            for (auto const &outer_ring : result.outer_rings()) {
+              std::vector<uint32_t> ends_vector;
+              std::vector<double> coords_vector;
+              for (auto const coord : outer_ring) {
+                coords_vector.push_back(coord.lon());
+                coords_vector.push_back(coord.lat());
+              }
+              ends_vector.push_back(coords_vector.size()/2);
+
+              for (auto const &inner_ring : result.inner_rings(outer_ring)) {
+                for (auto const coord : inner_ring) {
+                  coords_vector.push_back(coord.lon());
+                  coords_vector.push_back(coord.lat());
+                }
+                ends_vector.push_back(coords_vector.size()/2);
+              }
+              auto geom_part = FlatGeobuf::CreateGeometryDirect(fbBuilder, &ends_vector, &coords_vector, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::Polygon);
+              parts.push_back(geom_part);
+            }
+            geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::MultiPolygon, &parts);
           }
-          geometry = FlatGeobuf::CreateGeometryDirect(fbBuilder, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, FlatGeobuf::GeometryType::MultiPolygon, &parts);
+
+          std::vector<uint8_t> properties = tagsToProperties(keyToCol,tags);
+          auto pProperties = properties.size() == 0 ? nullptr : &properties;
+
+          auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
+          fbBuilder.FinishSizePrefixed(feature);
+          out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
+          fbBuilder.Clear();
         }
-
-        std::vector<uint8_t> properties = tagsToProperties(keyToCol,tags);
-        auto pProperties = properties.size() == 0 ? nullptr : &properties;
-
-        auto feature = FlatGeobuf::CreateFeatureDirect(fbBuilder, geometry, pProperties, nullptr);
-        fbBuilder.FinishSizePrefixed(feature);
-        out->write((char *)fbBuilder.GetBufferPointer(),fbBuilder.GetSize());
-        fbBuilder.Clear();
       }
+
     }
 
     retval = mdb_cursor_get(cursor,&key,&data,MDB_NEXT);

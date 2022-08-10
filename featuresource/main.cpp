@@ -99,8 +99,8 @@ int main(int argc, char* argv[]) {
 
   unique_ptr<ostream> out;
 
-  // out = make_unique<std::ostream>(std::cout.rdbuf());
-  out = make_unique<std::ofstream>("output.fgb", std::ios::binary);
+  out = make_unique<std::ostream>(std::cout.rdbuf());
+  // out = make_unique<std::ofstream>("output.fgb", std::ios::binary);
   uint8_t magicbytes[] = { 0x66, 0x67, 0x62, 0x03, 0x66, 0x67, 0x62, 0x00 };
   out->write((char *)magicbytes,sizeof(magicbytes));
   std::vector<double> envelope = {min_x,min_y,max_x,max_y};
