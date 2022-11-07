@@ -2,7 +2,7 @@
 
 ![Screenshot](examples/screenshot.png)
 
-[Manual](https://protomaps.com/docs/osmexpress/), [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide/)
+[Manual](docs/MANUAL.md), [Programming Guide](docs/PROGRAMMING_GUIDE.md)
 
 OSM Express is a fast storage format for OpenStreetMap that powers [Protomaps](https://protomaps.com) tools. It's designed as a low level building block specific to the OSM data model; common access patterns such as random lookups by ID, in-place minutely updates, and spatial queries are efficient and simple to manage in production applications. 
 
@@ -29,7 +29,7 @@ OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-
 
 Binary releases are available at [Releases](https://github.com/protomaps/OSMExpress/releases).
 
-[See the manual for instructions on building from source](https://protomaps.com/docs/osmexpress/programming-guide/). 
+[See the manual for instructions on building from source](/docs/osmexpress/programming-guide/). 
 
 ## Usage
 
@@ -50,7 +50,7 @@ osmx query planet.osmx way 34633854 # look up an element by ID.
 
 `osmx extract` has a flag `--noUserData` intended for public facing instances which will remove the user, uid and changeset fields to comply with [GDPR guidelines](https://wiki.openstreetmap.org/wiki/GDPR).
 
-Detailed command line usage can be found in the [Manual](https://protomaps.com/docs/osmexpress).
+Detailed command line usage can be found in the [Manual](docs/MANUAL.md).
 
 ### Headers
 
@@ -63,7 +63,7 @@ Empire State Building	LINESTRING (-73.9864855 40.7484833,-73.9851554 40.7479226,
 
 [examples/bbox_wkt.cpp](examples/bbox_wkt.cpp) is a more complex example that takes a bounding box as input, and returns WKT LineStrings for ways that overlap the bbox. This overlap is an approximation based on cells and may include ways outside the bounding box.
 
-Detailed C++ usage can be found in the [Programming Guide](https://protomaps.com/docs/osmexpress/programming-guide).
+Detailed C++ usage can be found in the [Programming Guide](docs/PROGRAMMING_GUIDE.md).
 
 ### Docker (experimental)
 
