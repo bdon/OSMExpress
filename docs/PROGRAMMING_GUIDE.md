@@ -25,6 +25,7 @@ via Apt package manager: `sudo apt install cmake clang libbz2-dev libz-dev libex
     make
 
 *macOS note: If OpenSSL is installed through Homebrew, you may need to add an option to your cmake command: `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@3`
+For macOS systems with Apple Silicon, this path is `-DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl\@3`
 
 ## Using the C++ Headers
 
