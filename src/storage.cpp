@@ -8,9 +8,9 @@ MDB_env *createEnv(std::string path, bool writable) {
   CHECK(mdb_env_create(&env));
 
   // the maximum size of any LMDB dataset. 
-  // 1TB is a safe number.
+  // 2TB is a safe number for just OSM data as of 02/2023
   // only affects the size of virtual memory, not real memory.
-  mdb_env_set_mapsize(env,1UL * 1024UL * 1024UL * 1024UL * 1024UL);
+  mdb_env_set_mapsize(env,2UL * 1024UL * 1024UL * 1024UL * 1024UL);
   mdb_env_set_maxdbs(env,10);
   int flags = 0;
   if (!writable) flags |= MDB_RDONLY;
