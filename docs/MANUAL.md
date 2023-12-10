@@ -1,6 +1,6 @@
 **OSM Express** is a database file format for OpenStreetMap data (.osmx), as well as a command line tool and C++ library for reading and writing .osmx files. Find it on GitHub at [github.com/protomaps/OSMExpress](https://github.com/protomaps/OSMExpress)
 
-![screenshot](https://github.com/protomaps/OSMExpress/blob/master/examples/screenshot.png?raw=true)
+![screenshot](https://github.com/protomaps/OSMExpress/blob/main/examples/screenshot.png?raw=true)
 
 *Illustration of the cell covering for a rectangular input region and its overlap with indexed OpenStreetMap geometries.*
 
@@ -19,7 +19,7 @@ Here are some use cases that OSM Express fits well.
 
 Binaries are available for MacOS (Darwin) and GNU/Linux at [GitHub Releases](https://github.com/protomaps/OSMExpress/releases).
 
-For information on how to compile the `osmx` program from source, see the [Programming Guide.](/docs/osmexpress/programming-guide)
+For information on how to compile the `osmx` program from source, see the [Programming Guide.](/docs/PROGRAMMING_GUIDE.md)
 
 Once you have the `osmx` command line program, you'll need to start with an .osm.pbf or OSM XML file. The Planet file is available at [planet.openstreetmap.org](https://planet.openstreetmap.org), but it's preferable to begin with something smaller to learn with.
 
@@ -44,13 +44,19 @@ We can also extract regions of the .osmx file into a new .osm.pbf file, which is
 
     osmx extract new_york_county.osmx downtown.osm.pbf --bbox 40.7411\,-73.9937\,40.7486\,-73.9821
 
+### Updating
+
+`utils/osmx-update` is provided to update `.osmx` to the most recent file on a replication server using `osmx update`. For example to update a planet.osmx file with minutely updates:
+
+    python utils/osmx-update planet.osmx https://planet.openstreetmap.org/replication/minute/
+
 ## Library
 
-the OSM Express library is intentionally minimal and non-opinionated - for example, no attempt is made to transform OSM tags to a fixed schema, distinguish between polygon and linear ways, or assemble multipolygon relations into polygons. For these typical tasks it's recommended to use OSM Express as a library in your own program. Documentation and example code are available at the [Programming Guide.](/docs/osmexpress/programming-guide)
+the OSM Express library is intentionally minimal and non-opinionated - for example, no attempt is made to transform OSM tags to a fixed schema, distinguish between polygon and linear ways, or assemble multipolygon relations into polygons. For these typical tasks it's recommended to use OSM Express as a library in your own program. Documentation and example code are available at the [Programming Guide.](/docs/PROGRAMMING_GUIDE.md)
 
 ## Other Languages
 
-An .osmx file can be opened and queried direcly in a Python program using the `osmx` Python package. See [Python](/docs/osmexpress/programming-guide#python) for details.
+An .osmx file can be opened and queried direcly in a Python program using the `osmx` Python package. See [Python](/docs/PROGRAMMING_GUIDE.md#python) for details.
 
 Languages other than Python may be supported in the future by either language-specific libraries or a new C API. See [Development](#Development) if you're interested or discuss on GitHub.
 
