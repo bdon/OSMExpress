@@ -29,7 +29,7 @@ OSM Express is a compact 1,500 LOC, and really a cobbling together of a few low-
 
 Binary releases are available at [Releases](https://github.com/protomaps/OSMExpress/releases).
 
-[See the manual for instructions on building from source](/docs/osmexpress/programming-guide/). 
+[See the manual for instructions on building from source](/docs/PROGRAMMING_GUIDE.md). 
 
 ## Usage
 
