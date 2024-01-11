@@ -13,9 +13,9 @@ Most dependencies are included as Git submodules in the `vendor/` directory, but
 via Homebrew: `brew install cmake bzip2 zlib openssl expat`
 
 *Additional macOS notes: the Clang compiler should be available via XCode Command Line Tools.*
-### Ubuntu 18.04
+### Ubuntu 22.04
 
-via Apt package manager: `sudo apt install cmake clang libbz2-dev libz-dev libexpat-dev libssl-dev`
+via Apt package manager: `sudo apt install cmake clang libbz2-dev libz-dev libexpat-dev libssl-dev python3-dev`
 
 ### Build Instructions
 
