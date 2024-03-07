@@ -111,16 +111,35 @@ The `osmx query` command with no arguments reveals the layout of an .osmx databa
     way_relation: 63350432
     relation_relation: 497137
 
-an .osmx file is a LMDB database with 10 sub-databases. All keys are 64 bit integers.
+an .osmx file is a LMDB database with 10 sub-databases. All keys are 64 bit integers in [host byte order](https://en.wikipedia.org/wiki/Endianness) (little-endian on most modern CPUs).
 
-* `locations`: maps a node ID to a 64-bit location, with 32 bits for each of lat, lon.
-* `nodes`, `ways`, `relations` map object IDs to a Cap'n Proto message as described in `include/osmx/messages.capnp`
-* `cell_node` maps a level 16 S2 cell to a node ID, using LMDB DUPSORT (sorted duplicate keys).
-* `node_way`, `node_relation`, `way_relation` and `relation_relation` map object IDs to its parent objects, also using DUPSORT.
+* `locations`: maps OSM node IDs to Locations, which store the coordinates and version number of the node (documented below).
+* `nodes`, `ways`, `relations` map OSM object IDs to a Cap'n Proto message defined in [`include/osmx/messages.capnp`](https://github.com/protomaps/OSMExpress/blob/main/include/osmx/messages.capnp).
+    - `nodes` only contains *tagged* nodes; the value for each key describes the node's tags and other metadata. Untagged nodes are included only in `locations` to save space on disk.
+    - `ways` contains all ways; the value for each key describes the way's tags, metadata, and the list of node IDs that are part of the way.
+    - `relations` contains all relations; the value for each key contains the relation's tags, metadata, and the IDs and roles of its members.
+* `cell_node` maps a level 16 [S2 cell ID](http://s2geometry.io/devguide/s2cell_hierarchy.html) to a node ID, using LMDB's `DUPSORT` to store multiple values for each key (since each S2 cell will intersect many OSM objects).
+* `node_way`, `node_relation`, `way_relation` and `relation_relation` map OSM object IDs to their parent object IDs, also using `DUPSORT` (since nodes can belong to multiple ways, ways to multiple relations, etc).
 
 Finally, the `metadata` sub-database holds arbitrary string:string values. This is used to store the replication sequence number and timestamp. 
 
 It is important to note that LMDB transactions span all sub-databases. This means that a read operation will retrieve the correct `timestamp` for the data it fetches, even if the database is written to while the read is happening.
+
+#### Encoding of Locations
+
+Values in the `locations` sub-database are structs with the following layout:
+
+```c
+struct Location {
+    int32_t longitude_i;
+    int32_t latitude_i;
+    int32_t version;
+};
+```
+
+Each field is serialized in host byte order.
+
+Longitude and latitude are stored as integers. To obtain the actual longitude and latitude as decimal numbers, divide the integer value by 10000000 (1e7). This integer-based encoding is precise to within a few centimeters anywhere on Earth. The same encoding is used by [libosmium](https://docs.osmcode.org/libosmium/latest/classosmium_1_1Location.html) and by the openstreetmap.org database internally.
 
 ### Spatial Indexing
 
