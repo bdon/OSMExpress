@@ -10,7 +10,7 @@ requirements = [
 
 setuptools.setup(
     name='osmx',
-    version='0.0.4',
+    version='0.0.5',
     author="Brandon Liu",
     author_email='brandon@protomaps.com',
     description='Read OSM Express (.osmx) database files.',
