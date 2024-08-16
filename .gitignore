@@ -19,3 +19,6 @@ Testing/
 compile_commands.json
 install_manifest.txt
 dist/*.tgz
+web/results
+web/tmp
+*.a
