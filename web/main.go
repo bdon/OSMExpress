@@ -6,30 +6,30 @@ import (
 	"flag"
 	"fmt"
 	"github.com/getsentry/sentry-go"
+	"github.com/google/uuid"
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/geojson"
+	"github.com/paulmach/orb/maptile"
+	"github.com/paulmach/orb/maptile/tilecover"
+	"image"
+	"image/png"
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"math"
 	"strings"
 	"sync"
 	"time"
-	"github.com/paulmach/orb/maptile/tilecover"
-	"github.com/paulmach/orb/geojson"
-	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/maptile"
-	"image"
-	"image/png"
-	"github.com/google/uuid"
 )
 
 type SystemState struct {
-	QueueSize int
+	QueueSize  int
 	NodesLimit int
-	Timestamp string
+	Timestamp  string
 }
 
 type Input struct {
@@ -39,7 +39,7 @@ type Input struct {
 }
 
 type Task struct {
-	Uuid string
+	Uuid                string
 	SanitizedRegionType string
 	SanitizedRegionData json.RawMessage
 }
@@ -71,8 +71,8 @@ type server struct {
 	tmpDir        string
 	osmxExec      string
 	osmxData      string
-	image					image.Image
-	nodesLimit 		int
+	image         image.Image
+	nodesLimit    int
 
 	timestampMutex    sync.Mutex
 	lastTimestampTime time.Time
@@ -99,7 +99,7 @@ func (h *server) worker(id int, queue chan Task) {
 			log.Fatal(err)
 		}
 		if task.SanitizedRegionType == "bbox" {
-			out.Write(task.SanitizedRegionData[1:len(task.SanitizedRegionData)-1])
+			out.Write(task.SanitizedRegionData[1 : len(task.SanitizedRegionData)-1])
 		} else {
 			out.Write(task.SanitizedRegionData)
 		}
@@ -107,7 +107,7 @@ func (h *server) worker(id int, queue chan Task) {
 
 		// copy to results dir
 		task_json, _ := json.Marshal(task)
-		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid + "_task.json"), task_json, 0644)
+		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid+"_region.json"), task_json, 0644)
 
 		args := []string{"extract", h.osmxData, pbfPath, "--jsonOutput", "--noUserData", "--region", regionPath}
 		fmt.Println(args)
@@ -185,28 +185,45 @@ func (h *server) StartWorkers() {
 	go h.worker(5, h.queue)
 }
 
-func GetPixel(image image.Image, z int, x int, y int) int {
-		if z < 12 {
-			dz := 2 << (12 - z)
-      acc := 0
-      for ix := x*dz; ix < x*dz+dz; ix++ {
-      	for iy := y*dz; iy < y*dz+dz; iy++ {
-      		red, green, _, _ := image.At(int(ix), int(iy)).RGBA()
-      		acc += int(red) * 256 + int(green)
-      	}
-      }
-      return acc
-		} else if z == 12 {
-			red, green, _, _ := image.At(x,y).RGBA()
-			return int(red) * 256 + int(green)
-		} else {
-				dz := 2 << (z - 12)
-        x := int(math.Floor(float64(x)/float64(dz)))
-        y := int(math.Floor(float64(y)/float64(dz)))
-				red, green, _, _ := image.At(x,y).RGBA()
-        return (int(red) * 256 + int(green)) / (dz*dz)
+func GetSum(image image.Image, geom orb.Geometry) int {
+	var covering map[maptile.Tile]bool
+	for z := 0; z <= 14; z++ {
+		covering, _ = tilecover.Geometry(geom, maptile.Zoom(z))
+		if len(covering) > 256 {
+			break
 		}
+	}
 
+	sum := 0.0
+	for t := range covering {
+		sum += GetPixel(image, int(t.Z), int(t.X), int(t.Y))
+	}
+
+	return int(sum * 32)
+}
+
+func GetPixel(image image.Image, z int, x int, y int) float64 {
+	if z < 12 {
+		dz := 2 << ((12 - z) - 1)
+		acc := 0.0
+		for ix := x * dz; ix < x*dz+dz; ix++ {
+			for iy := y * dz; iy < y*dz+dz; iy++ {
+				color := image.At(int(ix), int(iy))
+				red, green, _, _ := color.RGBA()
+				acc += float64(int(red>>8)*256) + float64(green>>8)
+			}
+		}
+		return acc
+	} else if z == 12 {
+		red, green, _, _ := image.At(x, y).RGBA()
+		return float64(int(red>>8)*256) + float64(green>>8)
+	} else {
+		dz := 2 << ((z - 12) - 1)
+		x := int(math.Floor(float64(x) / float64(dz)))
+		y := int(math.Floor(float64(y) / float64(dz)))
+		red, green, _, _ := image.At(x, y).RGBA()
+		return float64(int(red>>8)*256+int(green>>8)) / float64(dz*dz)
+	}
 }
 
 // check the filesystem for the result JSON
@@ -236,36 +253,21 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(400)
 				return
 			}
-			geom = orb.MultiPoint{orb.Point{coords[1],coords[0]}, orb.Point{coords[3],coords[2]}}.Bound()
+			geom = orb.MultiPoint{orb.Point{coords[1], coords[0]}, orb.Point{coords[3], coords[2]}}.Bound()
 			sanitized_data, _ = json.Marshal(coords[0:4])
 		} else {
 			w.WriteHeader(400)
 			return
 		}
-		fmt.Println("Finding covering")
-		fmt.Println(geom)
 
-		var covering map[maptile.Tile]bool
-		for z := 0; z <= 14; z++ {
-			covering, _ = tilecover.Geometry(geom,maptile.Zoom(z))
-			fmt.Println(z, covering)
-			if len(covering) > 256 {
-				break
-			}
+		if GetSum(h.image, geom) > h.nodesLimit {
+			w.WriteHeader(400)
+			return
 		}
-
-		fmt.Println("Finding sum")
-
-		sum := 0
-		for t := range covering {
-			sum += GetPixel(h.image,int(t.Z),int(t.X),int(t.Y))
-		}
-
-		fmt.Println(sum)
 
 		// end validate input
 
-		task := Task{Uuid:uuid.New().String(),SanitizedRegionType:input.RegionType,SanitizedRegionData:sanitized_data}
+		task := Task{Uuid: uuid.New().String(), SanitizedRegionType: input.RegionType, SanitizedRegionData: sanitized_data}
 
 		select {
 		case h.queue <- task:
@@ -297,7 +299,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.timestampMutex.Unlock()
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(SystemState{l,h.nodesLimit,timestamp})
+			json.NewEncoder(w).Encode(SystemState{l, h.nodesLimit, timestamp})
 		} else {
 			uuid := r.URL.Path[1:]
 
@@ -364,25 +366,25 @@ func main() {
 	}
 
 	file, err := os.Open("z12_red_green.png")
-  if err != nil {
-      fmt.Println("Error opening file:", err)
-      return
-  }
-  defer file.Close()
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	defer file.Close()
 
-  // Decode the PNG file
-  img, err := png.Decode(file)
-  if err != nil {
-      fmt.Println("Error decoding file:", err)
-      return
-  }
+	// Decode the PNG file
+	img, err := png.Decode(file)
+	if err != nil {
+		fmt.Println("Error decoding file:", err)
+		return
+	}
 
 	srv := server{
 		resultsDir: resultsDir,
 		tmpDir:     tmpDir,
 		osmxExec:   osmxExec,
 		osmxData:   osmxData,
-		image: img,
+		image:      img,
 		nodesLimit: 100000000,
 	}
 	srv.StartWorkers()
