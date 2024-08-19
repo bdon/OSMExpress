@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"bufio"
 	"encoding/json"
 	"flag"
@@ -24,7 +25,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	_ "embed"
 )
+
+//go:embed z12_red_green.png
+var imageBytes []byte
 
 type SystemState struct {
 	QueueSize  int
@@ -281,7 +286,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(503)
 		}
 	} else {
-		if r.URL.Path[1:] == "" {
+		if r.URL.Path == "/api" || r.URL.Path == "/api/" {
 			l := len(h.queue)
 
 			var timestamp string
@@ -300,8 +305,15 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(SystemState{l, h.nodesLimit, timestamp})
+		} else if r.URL.Path == "/api/nodes.png" {
+			w.Header().Set("Content-Type", "image/png")	
+			w.Write(imageBytes)
 		} else {
-			uuid := r.URL.Path[1:]
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) != 3 || parts[0] != "" || parts[1] != "api" {
+				w.WriteHeader(404)
+			}
+			uuid := parts[2]
 
 			h.progressMutex.RLock()
 			progress, ok := h.progress[uuid]
@@ -365,15 +377,7 @@ func main() {
 		}
 	}
 
-	file, err := os.Open("z12_red_green.png")
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
-	}
-	defer file.Close()
-
-	// Decode the PNG file
-	img, err := png.Decode(file)
+	img, err := png.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
 		fmt.Println("Error decoding file:", err)
 		return
