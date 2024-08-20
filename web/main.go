@@ -80,10 +80,10 @@ type server struct {
 	progress      map[string]Progress
 	progressMutex sync.RWMutex
 	queue         chan Task
-	resultsDir    string
+	filesDir      string
 	tmpDir        string
-	osmxExec      string
-	osmxData      string
+	exec          string
+	data          string
 	image         image.Image
 	nodesLimit    int
 
@@ -92,96 +92,111 @@ type server struct {
 	lastTimestamp     string
 }
 
+func (h *server) runTask(id int, task Task) error {
+	uuid := task.Uuid
+	fmt.Println("worker", id, "started job", uuid)
+	start := time.Now()
+
+	pbfPath := filepath.Join(h.tmpDir, uuid+".osm.pbf")
+
+	regionPath := filepath.Join(h.tmpDir, uuid+"."+task.SanitizedRegionType)
+
+	out, err := os.Create(regionPath)
+	if err != nil {
+		return err
+	}
+	if task.SanitizedRegionType == "bbox" {
+		out.Write(task.SanitizedRegionData[1 : len(task.SanitizedRegionData)-1])
+	} else {
+		out.Write(task.SanitizedRegionData)
+	}
+	out.Close()
+
+	taskJson, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(h.filesDir, uuid+"_region.json"), taskJson, 0644)
+	if err != nil {
+		return err
+	}
+
+	args := []string{"extract", h.data, pbfPath, "--jsonOutput", "--region", regionPath}
+	cmd := exec.Command(h.exec, args...)
+	stdout, err := cmd.StdoutPipe()
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+	reader := bufio.NewReader(stdout)
+	line, err := reader.ReadString('\n')
+	for err == nil {
+		var progress Progress
+		if err := json.NewDecoder(strings.NewReader(line)).Decode(&progress); err != nil {
+			return err
+		}
+		h.progressMutex.Lock()
+		h.progress[uuid] = progress
+		h.progressMutex.Unlock()
+		line, err = reader.ReadString('\n')
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(pbfPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	stat, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	if err := os.Rename(pbfPath, filepath.Join(h.filesDir, uuid+".osm.pbf")); err != nil {
+		return err
+	}
+
+	if err := os.Remove(regionPath); err != nil {
+		return err
+	}
+
+	var lastProgress Progress
+	h.progressMutex.Lock()
+	lastProgress = h.progress[uuid]
+	delete(h.progress, uuid)
+	h.progressMutex.Unlock()
+
+	elapsed := time.Since(start).Seconds()
+	lastProgress.Elapsed = elapsed
+	lastProgress.Complete = true
+	lastProgress.SizeBytes = stat.Size()
+	completion, err := json.Marshal(lastProgress)
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join(h.filesDir, uuid), completion, 0644); err != nil {
+		return err
+	}
+	fmt.Println("worker", id, "finished job", uuid, "in", elapsed)
+	return nil
+}
+
 func (h *server) worker(id int, queue chan Task) {
 	for task := range queue {
 		h.progressMutex.Lock()
 		h.progress[task.Uuid] = Progress{}
 		h.progressMutex.Unlock()
 
-		uuid := task.Uuid
-
-		fmt.Println("worker", id, "started job", uuid)
-		start := time.Now()
-
-		pbfPath := filepath.Join(h.tmpDir, uuid+".osm.pbf")
-
-		regionPath := filepath.Join(h.tmpDir, uuid+"."+task.SanitizedRegionType)
-
-		out, err := os.Create(regionPath)
+		err := h.runTask(id, task)
 		if err != nil {
-			log.Fatal(err)
-		}
-		if task.SanitizedRegionType == "bbox" {
-			out.Write(task.SanitizedRegionData[1 : len(task.SanitizedRegionData)-1])
-		} else {
-			out.Write(task.SanitizedRegionData)
-		}
-		out.Close()
-
-		task_json, _ := json.Marshal(task)
-		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid+"_region.json"), task_json, 0644)
-
-		args := []string{"extract", h.osmxData, pbfPath, "--jsonOutput", "--noUserData", "--region", regionPath}
-		cmd := exec.Command(h.osmxExec, args...)
-		stdout, err := cmd.StdoutPipe()
-
-		err = cmd.Start()
-		if err != nil {
-			log.Fatal(err)
-		}
-		reader := bufio.NewReader(stdout)
-		line, err := reader.ReadString('\n')
-		for err == nil {
-			var progress Progress
-			if err := json.NewDecoder(strings.NewReader(line)).Decode(&progress); err != nil {
-				log.Fatal(err)
-			}
-			h.progressMutex.Lock()
-			h.progress[uuid] = progress
-			h.progressMutex.Unlock()
-			line, err = reader.ReadString('\n')
-		}
-		err = cmd.Wait()
-		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 			sentry.CaptureException(err)
 			sentry.Flush(time.Second * 5)
-			continue
 		}
-
-		f, err := os.Open(pbfPath)
-		defer f.Close()
-		stat, _ := f.Stat()
-		if err != nil {
-			fmt.Errorf("failed to open file %q, %v", pbfPath, err)
-			continue
-		}
-
-		err = os.Rename(pbfPath, filepath.Join(h.resultsDir, uuid+".osm.pbf"))
-		if err != nil {
-			fmt.Errorf("failed to open file %q, %v", pbfPath, err)
-			continue
-		}
-
-		// os.RemoveAll(filepath.Join(h.tmpDir, uuid))
-
-		var lastProgress Progress
-		h.progressMutex.Lock()
-		lastProgress = h.progress[uuid]
-		delete(h.progress, uuid)
-		h.progressMutex.Unlock()
-
-		elapsed := time.Since(start).Seconds()
-		lastProgress.Elapsed = elapsed
-		lastProgress.Complete = true
-		lastProgress.SizeBytes = stat.Size()
-		completion, _ := json.Marshal(lastProgress)
-		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid), completion, 0644)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println("worker", id, "finished job", uuid, "in", elapsed)
 	}
 }
 
@@ -249,12 +264,12 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var geom orb.Geometry
-		var sanitized_data json.RawMessage
+		var sanitizedData json.RawMessage
 		// validate input
 		if input.RegionType == "geojson" {
-			geojson_geom, _ := geojson.UnmarshalGeometry(input.RegionData)
-			geom = geojson_geom.Geometry()
-			sanitized_data, _ = geojson_geom.MarshalJSON()
+			geojsonGeom, _ := geojson.UnmarshalGeometry(input.RegionData)
+			geom = geojsonGeom.Geometry()
+			sanitizedData, _ = geojsonGeom.MarshalJSON()
 		} else if input.RegionType == "bbox" {
 			var coords []float64
 			json.Unmarshal(input.RegionData, &coords)
@@ -263,7 +278,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			geom = orb.MultiPoint{orb.Point{coords[1], coords[0]}, orb.Point{coords[3], coords[2]}}.Bound()
-			sanitized_data, _ = json.Marshal(coords[0:4])
+			sanitizedData, _ = json.Marshal(coords[0:4])
 		} else {
 			w.WriteHeader(400)
 			return
@@ -277,7 +292,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// todo: sanitize name
 		// end validate input
 
-		task := Task{Uuid: uuid.New().String(), SanitizedName: input.Name, SanitizedRegionType: input.RegionType, SanitizedRegionData: sanitized_data}
+		task := Task{Uuid: uuid.New().String(), SanitizedName: input.Name, SanitizedRegionType: input.RegionType, SanitizedRegionData: sanitizedData}
 
 		select {
 		case h.queue <- task:
@@ -298,9 +313,9 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.timestampMutex.Lock()
 
 			if time.Since(h.lastTimestampTime).Seconds() > 10 {
-				cmd := exec.Command(h.osmxExec, "query", h.osmxData, "timestamp")
-				timestamp_raw, _ := cmd.Output()
-				timestamp = strings.TrimSpace(string(timestamp_raw))
+				cmd := exec.Command(h.exec, "query", h.data, "timestamp")
+				timestampRaw, _ := cmd.Output()
+				timestamp = strings.TrimSpace(string(timestampRaw))
 				h.lastTimestampTime = time.Now()
 				h.lastTimestamp = timestamp
 			} else {
@@ -330,7 +345,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			resultPath := filepath.Join(h.resultsDir, uuid)
+			resultPath := filepath.Join(h.filesDir, uuid)
 			if _, err := os.Stat(resultPath); err == nil {
 				Openfile, _ := os.Open(resultPath)
 				defer Openfile.Close()
@@ -345,29 +360,31 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var (
-		resultsDir, tmpDir, osmxExec, osmxData, sentryDsn string
+		filesDir, tmpDir, exec, data, sentryDsn string
 	)
-	flag.StringVar(&resultsDir, "resultsDir", "", "Result directory")
+	var nodesLimit int
+	flag.StringVar(&filesDir, "filesDir", "", "Result directory")
 	flag.StringVar(&tmpDir, "tmpDir", "", "Temporary directory")
-	flag.StringVar(&osmxExec, "osmxExec", "", "OSMX executable")
-	flag.StringVar(&osmxData, "osmxData", "", "OSMX database")
+	flag.StringVar(&exec, "exec", "", "OSMX executable")
+	flag.StringVar(&data, "data", "", "OSMX database")
 	flag.StringVar(&sentryDsn, "sentryDsn", "", "Sentry DSN")
+	flag.IntVar(&nodesLimit, "nodesLimit", 100000000, "Nodes limit")
 	flag.Parse()
 
-	if resultsDir == "" {
-		fmt.Println("-resultsDir required")
+	if filesDir == "" {
+		fmt.Println("-filesDir required")
 		os.Exit(1)
 	}
 	if tmpDir == "" {
 		fmt.Println("-tmpDir required")
 		os.Exit(1)
 	}
-	if osmxExec == "" {
-		fmt.Println("-osmxExec required")
+	if exec == "" {
+		fmt.Println("-exec required")
 		os.Exit(1)
 	}
-	if osmxData == "" {
-		fmt.Println("-osmxData required")
+	if data == "" {
+		fmt.Println("-data required")
 		os.Exit(1)
 	}
 
@@ -388,14 +405,15 @@ func main() {
 	}
 
 	srv := server{
-		resultsDir: resultsDir,
+		filesDir:   filesDir,
 		tmpDir:     tmpDir,
-		osmxExec:   osmxExec,
-		osmxData:   osmxData,
+		exec:       exec,
+		data:       data,
 		image:      img,
-		nodesLimit: 100000000,
+		nodesLimit: nodesLimit,
 	}
 	srv.StartWorkers()
+	fmt.Println("Starting server...")
 	http.Handle("/", &srv)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

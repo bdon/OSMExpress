@@ -1,5 +1,5 @@
 osm-downloads.protomaps.com {
-        root * /usr/share/caddy
+        root * /mnt/www
         reverse_proxy /api/* localhost:8080
         file_server
 }

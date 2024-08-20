@@ -3,7 +3,7 @@ Description=osmx-web
 After=network-online.target
 
 [Service]
-ExecStart=/home/osmx/main -resultsDir=/usr/share/caddy/files -tmpDir=/tmp -osmxExec=/home/osmx/OSMExpress/osmx -osmxData=/mnt/planet.osmx
+ExecStart=/home/osmx/main -resultsDir=/mnt/www/files -tmpDir=/mnt/tmp -osmxExec=/home/osmx/OSMExpress/osmx -osmxData=/mnt/planet.osmx
 Restart=always
 User=osmx
 
