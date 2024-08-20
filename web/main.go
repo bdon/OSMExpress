@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
+	_ "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,34 +23,46 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
-	_ "embed"
 )
 
+// used to estimate the nodes count on the client
+// as well as enforce it on the server.
+//
 //go:embed z12_red_green.png
 var imageBytes []byte
 
+// global system state.
 type SystemState struct {
 	QueueSize  int
 	NodesLimit int
 	Timestamp  string
 }
 
+// the content of a POST request
 type Input struct {
 	Name       string
 	RegionType string // geojson, bbox
 	RegionData json.RawMessage
 }
 
+// A sanitized serialization of the submitted job
+// used for the UI to display region, to re-create the region,
+// and to name the download.
 type Task struct {
 	Uuid                string
+	SanitizedName       string
 	SanitizedRegionType string
 	SanitizedRegionData json.RawMessage
 }
 
+// Used to display progress. When complete, is persisted
+// on the filesystem but still served through /api endpoint.
 type Progress struct {
+	// fields that come from osmx
 	Timestamp  string
 	CellsTotal int64
 	CellsProg  int64
@@ -57,15 +70,10 @@ type Progress struct {
 	NodesProg  int64
 	ElemsTotal int64
 	ElemsProg  int64
-}
 
-type ExtractCompleted struct {
-	Uuid       string
-	Timestamp  string
-	ElemsTotal int64
-	Complete   bool
-	SizeBytes  int64
-	Elapsed    float64
+	SizeBytes int64
+	Elapsed   float64
+	Complete  bool
 }
 
 type server struct {
@@ -110,12 +118,10 @@ func (h *server) worker(id int, queue chan Task) {
 		}
 		out.Close()
 
-		// copy to results dir
 		task_json, _ := json.Marshal(task)
 		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid+"_region.json"), task_json, 0644)
 
 		args := []string{"extract", h.osmxData, pbfPath, "--jsonOutput", "--noUserData", "--region", regionPath}
-		fmt.Println(args)
 		cmd := exec.Command(h.osmxExec, args...)
 		stdout, err := cmd.StdoutPipe()
 
@@ -166,9 +172,10 @@ func (h *server) worker(id int, queue chan Task) {
 		h.progressMutex.Unlock()
 
 		elapsed := time.Since(start).Seconds()
-		//
-		completed := ExtractCompleted{Uuid: uuid, Timestamp: lastProgress.Timestamp, ElemsTotal: lastProgress.ElemsTotal, Complete: true, SizeBytes: stat.Size(), Elapsed: elapsed}
-		completion, _ := json.Marshal(completed)
+		lastProgress.Elapsed = elapsed
+		lastProgress.Complete = true
+		lastProgress.SizeBytes = stat.Size()
+		completion, _ := json.Marshal(lastProgress)
 		err = ioutil.WriteFile(filepath.Join(h.resultsDir, uuid), completion, 0644)
 		if err != nil {
 			panic(err)
@@ -182,12 +189,9 @@ func (h *server) StartWorkers() {
 	h.queue = make(chan Task, 512)
 	h.progress = make(map[string]Progress)
 
-	go h.worker(0, h.queue)
-	go h.worker(1, h.queue)
-	go h.worker(2, h.queue)
-	go h.worker(3, h.queue)
-	go h.worker(4, h.queue)
-	go h.worker(5, h.queue)
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go h.worker(i, h.queue)
+	}
 }
 
 func GetSum(image image.Image, geom orb.Geometry) int {
@@ -270,9 +274,10 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// todo: sanitize name
 		// end validate input
 
-		task := Task{Uuid: uuid.New().String(), SanitizedRegionType: input.RegionType, SanitizedRegionData: sanitized_data}
+		task := Task{Uuid: uuid.New().String(), SanitizedName: input.Name, SanitizedRegionType: input.RegionType, SanitizedRegionData: sanitized_data}
 
 		select {
 		case h.queue <- task:
@@ -306,7 +311,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(SystemState{l, h.nodesLimit, timestamp})
 		} else if r.URL.Path == "/api/nodes.png" {
-			w.Header().Set("Content-Type", "image/png")	
+			w.Header().Set("Content-Type", "image/png")
 			w.Write(imageBytes)
 		} else {
 			parts := strings.Split(r.URL.Path, "/")
@@ -339,17 +344,16 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var resultsDir string
-	var tmpDir string
-	var osmxExec string
-	var osmxData string
-	var sentryDsn string
+	var (
+		resultsDir, tmpDir, osmxExec, osmxData, sentryDsn string
+	)
 	flag.StringVar(&resultsDir, "resultsDir", "", "Result directory")
 	flag.StringVar(&tmpDir, "tmpDir", "", "Temporary directory")
 	flag.StringVar(&osmxExec, "osmxExec", "", "OSMX executable")
 	flag.StringVar(&osmxData, "osmxData", "", "OSMX database")
 	flag.StringVar(&sentryDsn, "sentryDsn", "", "Sentry DSN")
 	flag.Parse()
+
 	if resultsDir == "" {
 		fmt.Println("-resultsDir required")
 		os.Exit(1)
