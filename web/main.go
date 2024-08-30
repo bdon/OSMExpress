@@ -286,6 +286,7 @@ func (h *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if GetSum(h.image, geom) > h.nodesLimit {
 			w.WriteHeader(400)
+			fmt.Fprintf(w, "Error: the limit of nodes was exceeded.")
 			return
 		}
 
