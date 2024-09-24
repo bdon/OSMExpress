@@ -35,11 +35,11 @@ std::unique_ptr<S2Polygon> S2PolyFromCoordinates(nlohmann::json &coordinates) {
 void Region::AddS2RegionFromGeometry(nlohmann::json &geometry) {
     if (geometry["type"] == "Polygon") {
         auto p = S2PolyFromCoordinates(geometry["coordinates"]);
-        mRegions.push_back(move(p));
+        mRegions.push_back(std::move(p));
     } else if (geometry["type"] == "MultiPolygon") {
         for (auto polygon : geometry["coordinates"]) {
             auto p = S2PolyFromCoordinates(polygon);
-            mRegions.push_back(move(p));
+            mRegions.push_back(std::move(p));
         }
     }
 }
