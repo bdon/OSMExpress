@@ -159,7 +159,7 @@ class Handler: public osmium::handler::Handler {
       setTags<Node::Builder>(node.tags(),nodeMsg);
       auto metadata = nodeMsg.initMetadata();
       metadata.setVersion(node.version());
-      metadata.setTimestamp(node.timestamp());
+      metadata.setTimestamp(node.timestamp().seconds_since_epoch());
       metadata.setChangeset(node.changeset());
       metadata.setUid(node.uid());
       metadata.setUser(node.user());
@@ -182,7 +182,7 @@ class Handler: public osmium::handler::Handler {
     setTags<Way::Builder>(way.tags(),wayMsg);
     auto metadata = wayMsg.initMetadata();
     metadata.setVersion(way.version());
-    metadata.setTimestamp(way.timestamp());
+    metadata.setTimestamp(way.timestamp().seconds_since_epoch());
     metadata.setChangeset(way.changeset());
     metadata.setUid(way.uid());
     metadata.setUser(way.user());
@@ -216,7 +216,7 @@ class Handler: public osmium::handler::Handler {
     }
     auto metadata = relationMsg.initMetadata();
     metadata.setVersion(relation.version());
-    metadata.setTimestamp(relation.timestamp());
+    metadata.setTimestamp(relation.timestamp().seconds_since_epoch());
     metadata.setChangeset(relation.changeset());
     metadata.setUid(relation.uid());
     metadata.setUser(relation.user());
