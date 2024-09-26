@@ -295,7 +295,7 @@ void cmdExtract(int argc, char * argv[]) {
   osmium::io::Writer writer{result["output"].as<string>(), header, osmium::io::overwrite::allow};
   osmium::memory::CallbackBuffer cb;
   cb.set_callback([&](osmium::memory::Buffer&& buffer) {
-    writer(move(buffer));
+    writer(std::move(buffer));
   });
 
   {
