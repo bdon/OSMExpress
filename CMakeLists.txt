@@ -15,6 +15,7 @@ set(ROARING_LINK_STATIC ON CACHE INTERNAL "")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/s2geometry EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/CRoaring EXCLUDE_FROM_ALL)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/Catch2 EXCLUDE_FROM_ALL)
 
 add_custom_target(build_lmdb COMMAND make liblmdb.a CC=clang XCFLAGS=-D_WANT_SEMUN
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lmdb/libraries/liblmdb
@@ -46,11 +47,11 @@ target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/
 target_link_libraries(osmx ${CMAKE_CURRENT_SOURCE_DIR}/vendor/capnproto/c++/src/kj/libkj.a)
 
 set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
+
 add_executable(osmxTest test/test_region.cpp src/region.cpp)
 set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
 include_directories(include)
-include_directories(vendor/Catch2/single_include)
-target_link_libraries(osmxTest s2)
+target_link_libraries(osmxTest s2 Catch2::Catch2WithMain)
 enable_testing()
 add_test(osmxTest osmxTest)
 
