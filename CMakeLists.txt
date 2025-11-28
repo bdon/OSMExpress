@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required(VERSION 3.20)
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 project(OSMExpress)
@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "-pthread")
+set(CMAKE_CXX_STANDARD 23)
 set(OSMX_VERSION "0.2.0")
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(ROARING_USE_CPM OFF)
@@ -146,11 +147,7 @@ target_link_libraries(
     bz2 CapnProto::capnp cxxopts::cxxopts expat LMDB::LMDB
     nlohmann_json::nlohmann_json roaring s2 z)
 
-set_property(TARGET osmx PROPERTY CXX_STANDARD 14)
-
 add_executable(osmxTest test/test_region.cpp src/region.cpp)
-
-set_property(TARGET osmxTest PROPERTY CXX_STANDARD 14)
 
 target_include_directories(
     osmxTest
@@ -177,8 +174,6 @@ add_library(
     src/extract.cpp
     src/update.cpp
     src/region.cpp)
-
-set_property(TARGET osmx-static PROPERTY CXX_STANDARD 14)
 
 target_include_directories(
     osmx-static
